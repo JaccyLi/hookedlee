@@ -1,0 +1,34 @@
+# Environment variables
+.env
+
+# Node modules
+node_modules/
+
+# WeChat Mini Program
+miniprogram_npm/
+.swan/
+.rn/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cloud function build artifacts
+cloudfunctions/*/node_modules/
+cloudfunctions/*/.miniprogram/
+cloudfunctions/*/miniprogram_npm/
+
+# Temporary files
+*.tmp
+.cache/

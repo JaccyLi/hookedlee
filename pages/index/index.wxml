@@ -1,0 +1,272 @@
+<!-- pages/index/index.wxml -->
+<view class="container">
+  <view class="header">
+    <text class="title">{{uiText.title}}</text>
+    <text class="subtitle">{{uiText.subtitle}}</text>
+  </view>
+
+  <!-- Language Toggle -->
+  <view class="lang-toggle">
+    <button class="lang-btn" bindtap="toggleLanguage" size="mini">
+      {{language === 'en' ? 'EN' : '中'}}
+    </button>
+  </view>
+
+  <!-- Article Container -->
+  <view class="article-container" wx:if="{{cardData}}">
+    <view class="article">
+      <!-- Article Hero Image -->
+      <image
+        class="article-hero-image"
+        src="{{cardData.imageUrl}}"
+        mode="aspectFill"
+        lazy-load="true"
+      ></image>
+
+      <!-- Article Content -->
+      <view class="article-content">
+        <view class="article-meta">
+          <view class="article-tag">{{cardData.category}}</view>
+          <!-- Copy Article Button -->
+          <button class="export-pdf-btn-small" bindtap="copyArticle">
+            {{uiText.copyArticle}}
+          </button>
+        </view>
+
+        <text class="article-title">{{cardData.title}}</text>
+
+        <!-- Paragraphs -->
+        <view class="article-paragraphs">
+          <view class="article-paragraph" wx:for="{{cardData.paragraphs}}" wx:key="index">
+            <!-- Paragraph Image -->
+            <image
+              class="paragraph-image"
+              src="{{item.imageUrl}}"
+              mode="aspectFill"
+              lazy-load="true"
+            ></image>
+
+            <!-- Paragraph Intro -->
+            <view class="paragraph-intro">
+              <text>{{item.intro}}</text>
+            </view>
+
+            <!-- Sub-paragraphs -->
+            <view class="sub-paragraphs" wx:if="{{item.subParagraphs && item.subParagraphs.length > 0}}">
+              <view class="sub-paragraph" wx:for="{{item.subParagraphs}}" wx:for-item="subPara" wx:key="*this">
+                <text>{{subPara}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- References/Appendix -->
+        <view class="article-appendix" wx:if="{{cardData.references && cardData.references.length > 0}}">
+          <view class="appendix-title">{{language === 'en' ? 'References' : '参考来源'}}</view>
+          <view class="references-list">
+            <view class="reference-item" wx:for="{{cardData.references}}" wx:key="url">
+              <text class="reference-title">{{item.title}}</text>
+              <navigator class="reference-url" url="{{item.url}}" target="miniProgram" open-type="navigator">
+                {{item.url}}
+              </navigator>
+              <view class="copy-hint" bindtap="copyUrl" data-url="{{item.url}}">
+                {{language === 'en' ? 'Tap to copy' : '点击复制'}}
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Loading State -->
+  <view class="loading-container" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <view class="loading-info">
+      <text class="loading-title">{{loadingTitle}}</text>
+      <text class="loading-step">{{loadingStep}}</text>
+      <text class="loading-detail">{{loadingDetail}}</text>
+      <text class="loading-tip">{{loadingTip}}</text>
+    </view>
+    <button class="joke-btn" bindtap="generateJoke">
+      {{uiText.jokeBtn}}
+    </button>
+    <view class="joke-container" wx:if="{{showJoke}}">
+      <text class="joke-text">{{jokeText}}</text>
+    </view>
+  </view>
+
+  <!-- Error State -->
+  <view class="error-container" wx:if="{{error}}">
+    <text class="error-text">{{error}}</text>
+  </view>
+
+  <!-- Initial State / Empty -->
+  <view class="empty-state" wx:if="{{!cardData && !loading && !error}}">
+    <text class="empty-text">{{uiText.emptyText}}</text>
+  </view>
+
+  <!-- Category Filter -->
+  <view class="filter-container">
+    <text class="filter-label">{{uiText.filterLabel}}</text>
+    <view class="filter-options">
+      <view
+        class="filter-option {{selectedCategory === 'all' || selectedCategory === 'random' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="all"
+      >
+        {{uiText.categories.all}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'fly tying' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="fly tying"
+      >
+        {{uiText.categories['fly tying']}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'fly casting' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="fly casting"
+      >
+        {{uiText.categories['fly casting']}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'biology' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="biology"
+      >
+        {{uiText.categories.biology}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'gear' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="gear"
+      >
+        {{uiText.categories.gear}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'conservation' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="conservation"
+      >
+        {{uiText.categories.conservation}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'orvis' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="orvis"
+      >
+        {{uiText.categories.orvis}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'winston' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="winston"
+      >
+        {{uiText.categories.winston}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'sage' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="sage"
+      >
+        {{uiText.categories.sage}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'redington' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="redington"
+      >
+        {{uiText.categories.redington}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'rio' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="rio"
+      >
+        {{uiText.categories.rio}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'scientific anglers' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="scientific anglers"
+      >
+        {{uiText.categories['scientific anglers']}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'steelhead' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="steelhead"
+      >
+        {{uiText.categories.steelhead}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'bass' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="bass"
+      >
+        {{uiText.categories.bass}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'saltwater' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="saltwater"
+      >
+        {{uiText.categories.saltwater}}
+      </view>
+      <view
+        class="filter-option {{selectedCategory === 'tenkara' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="tenkara"
+      >
+        {{uiText.categories.tenkara}}
+      </view>
+    </view>
+  </view>
+
+  <!-- Input Area (above Generate button) -->
+  <view class="input-area-container">
+    <input
+      class="category-input"
+      placeholder="{{uiText.placeholderCategory}}"
+      bindinput="onCategoryInput"
+      value="{{customCategory}}"
+      disabled="{{loading}}"
+    />
+  </view>
+
+  <!-- Generate Button (at bottom) -->
+  <view class="button-container">
+    <button
+      wx:if="{{hasPreviousArticle}}"
+      class="back-btn"
+      bindtap="goBackToPrevious"
+      disabled="{{loading}}"
+    >
+      {{uiText.backBtn}}
+    </button>
+    <button
+      wx:if="{{hasNextArticle}}"
+      class="next-btn"
+      bindtap="goBackToNext"
+      disabled="{{loading}}"
+    >
+      {{uiText.nextBtn}}
+    </button>
+    <button
+      wx:if="{{loading}}"
+      class="cancel-btn"
+      bindtap="cancelGeneration"
+    >
+      {{uiText.cancelBtn}}
+    </button>
+    <button
+      class="generate-btn"
+      bindtap="generateCard"
+      disabled="{{loading}}"
+    >
+      {{loading ? uiText.generating : uiText.generateBtn}}
+    </button>
+  </view>
+</view>
