@@ -90,9 +90,11 @@ page {
 .swab-flashcard-hero-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12rpx;
   margin-top: 24rpx;
   padding: 16rpx 32rpx;
+  min-width: 280rpx;
   background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
   border: 4rpx solid #000000;
   border-radius: 50rpx;
