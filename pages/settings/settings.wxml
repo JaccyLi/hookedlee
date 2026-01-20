@@ -27,7 +27,7 @@
     <!-- Section Header -->
     <view class="section-header">
       <text class="section-title">{{language === 'en' ? 'AI Model Selection' : 'AI 模型选择'}}</text>
-      <text class="section-desc">{{language === 'en' ? 'Choose which AI model to use for article generation' : '选择用于文章生成的 AI 模型'}}</text>
+      <text class="section-desc">{{language === 'en' ? 'Choose which AI model to use for article generation' : '选择用于文章搜索的引擎'}}</text>
     </view>
 
     <!-- Model Options -->

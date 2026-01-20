@@ -69,7 +69,7 @@
         <view class="tip-number">3</view>
         <view class="tip-content">
           <text class="tip-title">{{language === 'en' ? 'Learn with Flashcards' : '用闪卡学习'}}</text>
-          <text class="tip-desc">{{language === 'en' ? 'Tap the flashcard button while generating to learn fly fishing terminology.' : '在生成过程中点击闪卡按钮学习飞钓术语。'}}</text>
+          <text class="tip-desc">{{language === 'en' ? 'Tap the flashcard button while generating to learn fly fishing terminology.' : '在搜索过程中点击闪卡按钮学习飞钓术语。'}}</text>
         </view>
       </view>
     </view>

@@ -1077,14 +1077,14 @@ page {
 /* Floating Action Buttons */
 .floating-actions {
   position: fixed;
-  bottom: 40rpx;
-  right: 40rpx;
+  top: 32rpx;
+  right: 32rpx;
   display: flex;
-  flex-direction: column;
-  gap: 16rpx;
+  flex-direction: row;
+  gap: 12rpx;
   z-index: 1000;
   opacity: 0;
-  transform: translateY(20rpx);
+  transform: translateY(-20rpx);
   transition: opacity 0.3s ease, transform 0.3s ease;
   pointer-events: none;
 }
@@ -1096,24 +1096,24 @@ page {
 }
 
 .floating-btn {
-  width: 96rpx;
-  height: 96rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: 88rpx;
+  height: 88rpx;
+  background: #000000;
   border: 4rpx solid #000000;
-  border-radius: 50%;
+  border-radius: 16rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
   transition: all 0.2s ease;
 }
 
 .floating-btn:active {
-  transform: scale(0.9);
-  box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+  transform: scale(0.95);
+  opacity: 0.8;
 }
 
 .floating-btn-icon {
-  font-size: 40rpx;
+  font-size: 32rpx;
   line-height: 1;
 }
