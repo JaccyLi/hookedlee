@@ -94,6 +94,7 @@ Page({
     currentTipIndex: 0,
     lastTipIndex: -1,
     flashcards: [],
+    showFloatingButtons: false,
     flashcardCategories: {},
     currentFlashcardCategory: {
       key: 'casting',
@@ -124,6 +125,23 @@ Page({
 
     this.updateUIText()
     this.initializeFlashcardCategories()
+  },
+
+  onPageScroll(e) {
+    // Show floating buttons when scrolling down
+    if (e.scrollTop > 100) {
+      if (!this.data.showFloatingButtons) {
+        this.setData({
+          showFloatingButtons: true
+        })
+      }
+    } else {
+      if (this.data.showFloatingButtons) {
+        this.setData({
+          showFloatingButtons: false
+        })
+      }
+    }
   },
 
   initializeFlashcardCategories() {

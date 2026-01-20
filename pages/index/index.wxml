@@ -374,4 +374,14 @@
       <view class="swab-tips-hint" style="background: {{currentFlashcardCategory.color}}20">{{language === 'en' ? '← Swipe to navigate →' : '← 滑动切换 →'}}</view>
     </view>
   </view>
+
+  <!-- Floating Action Buttons -->
+  <view class="floating-actions {{showFloatingButtons ? 'visible' : ''}}">
+    <view class="floating-btn" bindtap="toggleLanguage">
+      <text class="floating-btn-icon">{{language === 'en' ? '🌐' : '🌏'}}</text>
+    </view>
+    <view class="floating-btn" bindtap="goToSettings">
+      <text class="floating-btn-icon">⚙️</text>
+    </view>
+  </view>
 </view>

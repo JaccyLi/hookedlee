@@ -1073,3 +1073,47 @@ page {
   transform: scale(0.95);
   opacity: 0.8;
 }
+
+/* Floating Action Buttons */
+.floating-actions {
+  position: fixed;
+  bottom: 40rpx;
+  right: 40rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(20rpx);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.floating-actions.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.floating-btn {
+  width: 96rpx;
+  height: 96rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 4rpx solid #000000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.4);
+  transition: all 0.2s ease;
+}
+
+.floating-btn:active {
+  transform: scale(0.9);
+  box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+}
+
+.floating-btn-icon {
+  font-size: 40rpx;
+  line-height: 1;
+}
