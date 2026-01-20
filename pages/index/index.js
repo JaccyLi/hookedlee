@@ -626,20 +626,29 @@ Page({
         loadingDetail: isEn ? `Using ${selectedModel} - Writing content...` : `使用 ${selectedModel} - 正在撰写内容...`
       })
 
-      const sectionPromises = outline.sections.map(async (section, index) => {
-        console.log(`[generateCard] Processing section ${index + 1}:`, section.title)
+      // Step 1: Expand all section content in parallel
+      const expansionPromises = outline.sections.map(async (section, index) => {
+        console.log(`[generateCard] Expanding section ${index + 1}:`, section.title)
         const expandedSection = await expandSection(section, apiKey, self.data.language, selectedModel, apiKeys)
         console.log(`[generateCard] Section ${index + 1} expanded, subParagraphs count:`, expandedSection.subParagraphs?.length || 0)
-        console.log(`[generateCard] Section ${index + 1} full data:`, {
-          intro: expandedSection.intro?.substring(0, 50),
-          subParagraphsCount: expandedSection.subParagraphs?.length || 0,
-          hasImagePrompt: !!expandedSection.imagePrompt
-        })
+        return { index, expandedSection }
+      })
 
+      const expandedSections = await Promise.all(expansionPromises)
+      console.log('[generateCard] All sections expanded')
+
+      // Step 2: Generate all images in parallel
+      this.setData({
+        loadingStep: isEn ? 'Generating images...' : '生成图片...',
+        loadingTip: isEn ? 'Creating visual content' : '创建视觉内容',
+        loadingDetail: isEn ? 'Generating images for all sections...' : '为所有章节生成图片...'
+      })
+
+      const imagePromises = expandedSections.map(async ({ index, expandedSection }) => {
         let imageUrl = ''
         try {
-          imageUrl = await generateImage(section.imagePrompt, apiKey)
-          console.log(`[Section ${index + 1}] Content and image ready`)
+          imageUrl = await generateImage(outline.sections[index].imagePrompt, apiKey)
+          console.log(`[Section ${index + 1}] Image generated`)
         } catch (error) {
           console.error(`[Section ${index + 1}] Image generation failed:`, error)
         }
@@ -654,7 +663,7 @@ Page({
       const heroImagePromise = generateHeroImage(outline.title, outline.originalCategory, apiKey)
 
       const [paragraphs, heroImageUrl] = await Promise.all([
-        Promise.all(sectionPromises),
+        Promise.all(imagePromises),
         heroImagePromise
       ])
 
