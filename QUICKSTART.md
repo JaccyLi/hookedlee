@@ -78,23 +78,23 @@ Edit `app.js` and add your BigModel API key.
 - Check internet connection
 - Verify domains are whitelisted (production)
 - Check that API key is valid
-- Try generating card again
+- Try searching card again
 
 ### "Failed to Fetch Article"
 
 - Check internet connection
 - Some RSS feeds may be temporarily down
 - App tries multiple feeds before failing
-- Try generating card again
+- Try searching card again
 
 ### Images Not Loading
 
 - Check internet connection
 - Image URL is valid for 30 days
-- Try generating a new card
+- Try searching a new card
 
 ## Ready to Use! 🎣
 
-Get your free BigModel API key and start generating cards!
+Get your free BigModel API key and start searching cards!
 
 For detailed documentation, see [README.md](README.md).

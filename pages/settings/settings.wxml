@@ -3,50 +3,43 @@
   <!-- Header Section -->
   <view class="header">
     <text class="title">{{language === 'en' ? 'Settings' : '设置'}}</text>
-    <text class="subtitle">{{language === 'en' ? 'Select your AI model' : '选择您的 AI 模型'}}</text>
+    <text class="subtitle">{{language === 'en' ? 'Select your search engine' : '选择您的搜索引擎'}}</text>
   </view>
 
-  <!-- Unified Section: Notice + Model Selection -->
+  <!-- Unified Section: Notice + Search Engine Selection -->
   <view class="unified-section">
-    <!-- Notice -->
-    <view class="section-notice">
-      <view class="notice-icon">✨</view>
-      <text class="notice-title">{{language === 'en' ? 'API Keys Pre-configured' : 'API 密钥已预配置'}}</text>
-      <text class="notice-text">{{language === 'en' ? 'All models have built-in keys and are ready to use.' : '所有模型都已内置密钥，可直接使用。'}}</text>
-    </view>
-
     <!-- Recommendation Tip -->
     <view class="recommendation-tip">
       <text class="tip-icon">💡</text>
       <view class="tip-content">
         <text class="tip-title">{{language === 'en' ? 'Recommendation' : '推荐'}}</text>
-        <text class="tip-text">{{language === 'en' ? 'DeepSeek-Chat offers the best balance of speed and quality for daily use.' : 'DeepSeek-Chat 在速度和质量之间取得了最佳平衡，适合日常使用。'}}</text>
+        <text class="tip-text">{{language === 'en' ? 'Fast Search offers the best balance of speed and quality for daily use.' : '快速搜索在速度和质量之间取得了最佳平衡，适合日常使用。'}}</text>
       </view>
     </view>
 
     <!-- Section Header -->
     <view class="section-header">
-      <text class="section-title">{{language === 'en' ? 'AI Model Selection' : 'AI 模型选择'}}</text>
-      <text class="section-desc">{{language === 'en' ? 'Choose which AI model to use for article generation' : '选择用于文章搜索的引擎'}}</text>
+      <text class="section-title">{{language === 'en' ? 'Search Engine Selection' : '搜索引擎选择'}}</text>
+      <text class="section-desc">{{language === 'en' ? 'Choose which search engine to use for finding articles' : '选择用于查找文章的搜索引擎'}}</text>
     </view>
 
-    <!-- Model Options -->
+    <!-- Search Engine Options -->
     <radio-group class="model-options" bindchange="onModelChange">
-      <!-- GLM-4.7 Option -->
+      <!-- Quality Search Engine (GLM-4.7) -->
       <label class="model-card {{selectedModel === 'glm-4.7' ? 'active' : ''}}">
         <radio value="glm-4.7" checked="{{selectedModel === 'glm-4.7'}}" class="hidden-radio" />
         <view class="model-card-content">
           <view class="model-icon-wrapper">
-            <text class="model-icon">🤖</text>
+            <text class="model-icon">📚</text>
           </view>
           <view class="model-details">
-            <text class="model-name">GLM-4.7</text>
-            <text class="model-subname">{{language === 'en' ? '(智谱 Zhipu)' : '(智谱)'}}</text>
+            <text class="model-name">{{language === 'en' ? 'Quality Search' : '质量搜索'}}</text>
+            <text class="model-subname"></text>
             <text class="model-tags">
               <text class="tag tag-quality">{{language === 'en' ? 'Quality' : '质量好'}}</text>
               <text class="tag tag-speed">{{language === 'en' ? 'Slightly Slow' : '稍慢'}}</text>
             </text>
-            <text class="model-desc">{{language === 'en' ? '✅ Pre-configured • Good output quality' : '✅ 已配置 • 输出质量不错'}}</text>
+            <text class="model-desc">{{language === 'en' ? '✅ Comprehensive search results with detailed information' : '✅ 全面的搜索结果，信息详细'}}</text>
           </view>
           <view class="model-indicator {{selectedModel === 'glm-4.7' ? 'active' : ''}}">
             <view class="indicator-dot"></view>
@@ -54,7 +47,7 @@
         </view>
       </label>
 
-      <!-- DeepSeek-Chat Option -->
+      <!-- Fast Search Engine (DeepSeek-Chat) -->
       <label class="model-card {{selectedModel === 'deepseek-chat' ? 'active' : ''}}">
         <radio value="deepseek-chat" checked="{{selectedModel === 'deepseek-chat'}}" class="hidden-radio" />
         <view class="model-card-content">
@@ -62,13 +55,13 @@
             <text class="model-icon">⚡</text>
           </view>
           <view class="model-details">
-            <text class="model-name">DeepSeek-Chat</text>
-            <text class="model-subname">{{language === 'en' ? '(DeepSeek)' : '(深度求索)'}}</text>
+            <text class="model-name">{{language === 'en' ? 'Fast Search' : '快速搜索'}}</text>
+            <text class="model-subname"></text>
             <text class="model-tags">
               <text class="tag tag-quality tag-recommended">{{language === 'en' ? 'Good Quality' : '质量好'}}</text>
               <text class="tag tag-speed tag-recommended">{{language === 'en' ? 'Fast' : '快速'}}</text>
             </text>
-            <text class="model-desc">{{language === 'en' ? '✅ Pre-configured • Fast & good quality' : '✅ 已配置 • 快速且质量好'}}</text>
+            <text class="model-desc">{{language === 'en' ? '✅ Quick results with good quality • Recommended' : '✅ 快速结果且质量好 • 推荐'}}</text>
           </view>
           <view class="model-indicator {{selectedModel === 'deepseek-chat' ? 'active' : ''}}">
             <view class="indicator-dot"></view>
@@ -76,21 +69,21 @@
         </view>
       </label>
 
-      <!-- DeepSeek-Reasoner Option -->
+      <!-- Deep Search Engine (DeepSeek-Reasoner) -->
       <label class="model-card {{selectedModel === 'deepseek-reasoner' ? 'active' : ''}}">
         <radio value="deepseek-reasoner" checked="{{selectedModel === 'deepseek-reasoner'}}" class="hidden-radio" />
         <view class="model-card-content">
           <view class="model-icon-wrapper">
-            <text class="model-icon">🧠</text>
+            <text class="model-icon">🔬</text>
           </view>
           <view class="model-details">
-            <text class="model-name">DeepSeek-Reasoner</text>
-            <text class="model-subname">{{language === 'en' ? '(DeepSeek R1)' : '(深度求索 R1)'}}</text>
+            <text class="model-name">{{language === 'en' ? 'Deep Search' : '深度搜索'}}</text>
+            <text class="model-subname"></text>
             <text class="model-tags">
               <text class="tag tag-quality tag-best">{{language === 'en' ? 'Best Quality' : '最佳质量'}}</text>
               <text class="tag tag-speed tag-slowest">{{language === 'en' ? 'Slowest' : '最慢'}}</text>
             </text>
-            <text class="model-desc">{{language === 'en' ? '✅ Pre-configured • Powerful reasoning' : '✅ 已配置 • 强大推理能力'}}</text>
+            <text class="model-desc">{{language === 'en' ? '✅ In-depth analysis with comprehensive results' : '✅ 深入分析，结果全面'}}</text>
           </view>
           <view class="model-indicator {{selectedModel === 'deepseek-reasoner' ? 'active' : ''}}">
             <view class="indicator-dot"></view>
@@ -98,27 +91,6 @@
         </view>
       </label>
     </radio-group>
-  </view>
-
-  <!-- Debug Mode Section -->
-  <view class="unified-section" style="margin-top: 24rpx;">
-    <view class="section-header">
-      <text class="section-title">{{language === 'en' ? 'Debug Mode' : '调试模式'}}</text>
-      <text class="section-desc">{{language === 'en' ? 'Enable detailed logging for development' : '启用详细日志用于开发'}}</text>
-    </view>
-
-    <view class="debug-mode-card">
-      <view class="debug-mode-content">
-        <view class="debug-mode-info">
-          <text class="debug-mode-icon">{{debugMode ? '🐛' : '🔒'}}</text>
-          <view class="debug-mode-text">
-            <text class="debug-mode-title">{{debugMode ? (language === 'en' ? 'Debug Mode Enabled' : '调试模式已开启') : (language === 'en' ? 'Production Mode' : '生产模式')}}</text>
-            <text class="debug-mode-desc">{{debugMode ? (language === 'en' ? 'Detailed logs will appear in console' : '控制台将显示详细日志') : (language === 'en' ? 'Only errors and warnings will be logged' : '仅记录错误和警告')}}</text>
-          </view>
-        </view>
-        <switch checked="{{debugMode}}" bindchange="onDebugModeChange" color="#FF6B6B" />
-      </view>
-    </view>
   </view>
 
   <!-- Back Button -->

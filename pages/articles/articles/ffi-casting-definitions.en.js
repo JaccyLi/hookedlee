@@ -32,8 +32,6 @@ A fly leg where the fly line and leader are relatively free from curvature from 
 
 ![Casting_StraightFlyLegA.png](Casting_StraightFlyLegA.png)
 
-![Casting_StraightFlyLegB.png](Casting_StraightFlyLegB.png)
-
 ### Convex Fly Leg
 A fly leg with a dome shaped configuration curving away from the rod leg.
 
@@ -46,6 +44,8 @@ A fly leg which is not straight and dips toward the rod leg.
 
 ### Trailing Loop
 A loop which has a fly leg which is not concave, and crosses the rod leg.
+
+![Casting_StraightFlyLegB.png](Casting_StraightFlyLegB.png)
 
 ### Tailing Loop
 A loop with a concave fly leg, which dips towards and crosses the rod leg.

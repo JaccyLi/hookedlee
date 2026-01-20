@@ -148,5 +148,14 @@ Page({
       })
       this.updateUIText()
     }
+  },
+
+  onShareAppMessage() {
+    const language = this.data.language || 'en'
+    return {
+      title: language === 'en' ? 'HookedLee - Your Fly Fishing Knowledge Base' : 'HookedLee - 你的飞钓知识库',
+      path: '/pages/articles/articles',
+      imageUrl: '/images/share-cover.jpg'
+    }
   }
 })

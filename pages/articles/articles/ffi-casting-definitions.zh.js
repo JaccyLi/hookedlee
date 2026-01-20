@@ -32,8 +32,6 @@ module.exports = `# FFI 飞钓抛投定义
 
 ![Casting_StraightFlyLegA.png](Casting_StraightFlyLegA.png)
 
-![Casting_StraightFlyLegB.png](Casting_StraightFlyLegB.png)
-
 ### 凸形毛钩腿 (Convex Fly Leg)
 具有远离竿腿的圆顶形的毛钩腿。
 
@@ -46,6 +44,8 @@ module.exports = `# FFI 飞钓抛投定义
 
 ### 拖尾线环 (Trailing Loop)
 毛钩腿不凹陷并与竿腿交叉的线环。
+
+![Casting_StraightFlyLegB.png](Casting_StraightFlyLegB.png)
 
 ### 追尾线环 (Tailing Loop)
 具有凹形毛钩腿的线环,其向竿腿下沉并与竿腿交叉。

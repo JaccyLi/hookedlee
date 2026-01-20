@@ -1044,7 +1044,7 @@ page {
   text-transform: uppercase;
 }
 
-.swab-generating-btn {
+.swab-searching-btn {
   flex: 2;
   height: 120rpx;
   background: #e8e8e8;
@@ -1055,7 +1055,7 @@ page {
   justify-content: center;
 }
 
-.generating-text {
+.searching-text {
   font-size: 40rpx;
   font-weight: 900;
   color: #000000;

@@ -269,7 +269,7 @@ Can bypass whitelisting by enabling "Do not verify legal domain names" in WeChat
 1. Check internet connection
 2. Verify domains are whitelisted (production)
 3. Check that API key is valid
-4. Try generating card again
+4. Try searching card again
 
 ### "Failed to Fetch Article"
 
@@ -447,4 +447,4 @@ This project is open source and available for personal and educational use.
 
 ---
 
-**Ready to use! Get your free BigModel API key and start generating fly fishing cards! 🎣**
+**Ready to use! Get your free BigModel API key and start searching fly fishing cards! 🎣**

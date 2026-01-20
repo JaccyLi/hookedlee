@@ -29,7 +29,7 @@ const i18n = {
     title: 'HookedLee',
     subtitle: 'Search and discover fly fishing knowledge',
     generateBtn: 'Search',
-    generating: 'Searching...',
+    searching: 'Searching...',
     cancelBtn: 'Cancel',
     cancelling: 'Cancelling...',
     cancelled: 'Search cancelled',
@@ -53,7 +53,7 @@ const i18n = {
     title: 'HookedLee',
     subtitle: '搜索并发现飞钓知识',
     generateBtn: '搜索',
-    generating: '搜索中...',
+    searching: '搜索中...',
     cancelBtn: '取消',
     cancelling: '取消中...',
     cancelled: '已取消搜索',
@@ -839,5 +839,14 @@ Page({
         })
       }
     })
+  },
+
+  onShareAppMessage() {
+    const language = this.data.language || 'en'
+    return {
+      title: language === 'en' ? 'HookedLee - Your Fly Fishing Knowledge Base' : 'HookedLee - 你的飞钓知识库',
+      path: '/pages/index/index',
+      imageUrl: '/images/share-cover.jpg'
+    }
   }
 })

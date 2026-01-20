@@ -69,7 +69,7 @@
         <view class="tip-number">3</view>
         <view class="tip-content">
           <text class="tip-title">{{language === 'en' ? 'Learn with Flashcards' : '用闪卡学习'}}</text>
-          <text class="tip-desc">{{language === 'en' ? 'Tap the flashcard button while generating to learn fly fishing terminology.' : '在搜索过程中点击闪卡按钮学习飞钓术语。'}}</text>
+          <text class="tip-desc">{{language === 'en' ? 'Tap the flashcard button while searching to learn fly fishing terminology.' : '在搜索过程中点击闪卡按钮学习飞钓术语。'}}</text>
         </view>
       </view>
     </view>
@@ -323,8 +323,8 @@
         <view class="swab-cancel-btn" bindtap="cancelGeneration">
           <text class="cancel-text">{{uiText.cancelBtn}}</text>
         </view>
-        <view class="swab-generating-btn">
-          <text class="generating-text">{{uiText.generating}}</text>
+        <view class="swab-searching-btn">
+          <text class="searching-text">{{uiText.searching}}</text>
         </view>
       </block>
     </view>
