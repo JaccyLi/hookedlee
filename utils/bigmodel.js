@@ -190,7 +190,7 @@ Required Article Structure:
 3. Each paragraph must have:
    - An introductory section (2-4 sentences)
    - Between 1 and 5 sub-paragraphs (each 1-3 sentences)
-4. Each paragraph needs an image prompt for AI image generation (describe the scene for that section)
+4. Each paragraph needs an image search keyword (describe the scene for that section)
 5. An appendix with 3-5 reference URLs (real fly fishing websites, X posts, Facebook posts, or Reddit discussions)
 
 JSON Format:
@@ -203,7 +203,7 @@ JSON Format:
         "Sub-paragraph 1 text...",
         "Sub-paragraph 2 text..."
       ],
-      "imagePrompt": "Detailed description for AI to generate an image representing this paragraph..."
+      "imagePrompt": "Image search keyword describing this paragraph..."
     }
   ],
   "references": [
@@ -238,7 +238,7 @@ Output ONLY the JSON object - no markdown formatting, no code blocks, no explana
 3. 每个段落必须包含：
    - 一个介绍部分（2-4个句子）
    - 1到5个子段落（每个1-3个句子）
-4. 每个段落需要一个AI图片生成提示词（描述该段落的场景）
+4. 每个段落需要一个图片搜索关键词（描述该段落的场景）
 5. 一个附录，包含3-5个参考URL（真实的飞钓网站、X帖子、Facebook帖子或Reddit讨论）
 
 JSON格式：
@@ -251,7 +251,7 @@ JSON格式：
         "子段落1文本...",
         "子段落2文本..."
       ],
-      "imagePrompt": "AI生成图片的详细描述..."
+      "imagePrompt": "图片搜索关键词..."
     }
   ],
   "references": [
@@ -304,8 +304,8 @@ JSON格式：
       if (onProgress) {
         onProgress({
           stage: 'content',
-          message: language === 'en' ? 'Writing article content...' : '正在撰写文章内容...',
-          detail: language === 'en' ? 'Generating title and sections' : '生成标题和章节'
+          message: language === 'en' ? 'Searching article content...' : '正在搜索文章内容...',
+          detail: language === 'en' ? 'Finding title and sections' : '查找标题和章节'
         })
       }
 
@@ -344,7 +344,7 @@ JSON格式：
               if (onProgress) {
                 onProgress({
                   stage: 'content_complete',
-                  message: language === 'en' ? 'Content generated!' : '内容已生成！',
+                  message: language === 'en' ? 'Content found!' : '内容已找到！',
                   detail: language === 'en' ? `Title: "${articleData.title.substring(0, 30)}..."` : `标题："${articleData.title.substring(0, 30)}..."`
                 })
               }
@@ -492,8 +492,8 @@ Output ONLY the JSON object.`
     if (onProgress) {
       onProgress({
         stage: 'outline',
-        message: language === 'en' ? 'Creating article outline...' : '正在创建文章大纲...',
-        detail: language === 'en' ? 'Generating title and section summaries' : '生成标题和章节摘要'
+        message: language === 'en' ? 'Searching article outline...' : '正在搜索文章大纲...',
+        detail: language === 'en' ? 'Finding title and section summaries' : '查找标题和章节摘要'
       })
     }
 
@@ -796,7 +796,7 @@ async function generateImagesForParagraphs(paragraphs, apiKey, onProgress = null
           stage: 'paragraph_image',
           current: i + 1,
           total: paragraphs.length,
-          message: `Generating image ${i + 1}/${paragraphs.length}...`,
+          message: `Loading image ${i + 1}/${paragraphs.length}...`,
           detail: `Section ${i + 1} image`
         })
       }
@@ -857,7 +857,7 @@ async function generateHeroImage(title, category, apiKey, onProgress = null) {
     if (onProgress) {
       onProgress({
         stage: 'hero_image',
-        message: 'Creating hero image...',
+        message: 'Loading hero image...',
         detail: 'Main cover image'
       })
     }
@@ -868,7 +868,7 @@ async function generateHeroImage(title, category, apiKey, onProgress = null) {
     if (onProgress) {
       onProgress({
         stage: 'hero_image_complete',
-        message: 'Hero image complete!',
+        message: 'Hero image loaded!',
         detail: 'Main cover image ready'
       })
     }

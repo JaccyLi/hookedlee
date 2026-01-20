@@ -727,11 +727,11 @@ Page({
       }
       console.error('Generate card error:', err)
       self.setData({
-        error: this.data.language === 'en' ? 'Failed to generate article. Please try again.' : '生成文章失败，请重试。'
+        error: this.data.language === 'en' ? 'Search failed. Please try again.' : '搜索失败，请重试。'
       })
 
       wx.showToast({
-        title: this.data.language === 'en' ? 'Writing failed' : '写作失败',
+        title: this.data.language === 'en' ? 'Search failed' : '搜索失败',
         icon: 'error',
         duration: 2000
       })
