@@ -27,7 +27,7 @@
     <view class="action-card" bindtap="goToArticles">
       <view class="action-icon-large">📚</view>
       <text class="action-title">{{language === 'en' ? 'Read Articles' : '精选文章'}}</text>
-      <text class="action-desc">{{language === 'en' ? 'Browse our curated collection of fly fishing guides' : '非AI生成的文章或者翻译的文章'}}</text>
+      <text class="action-desc">{{language === 'en' ? 'Browse our curated collection of fly fishing guides' : '浏览我们精选的飞钓指南集合'}}</text>
       <view class="action-meta">
         <text class="action-count">{{articleCount}} {{language === 'en' ? 'article' : '篇文章'}}</text>
         <text class="action-arrow">→</text>
@@ -36,10 +36,10 @@
 
     <view class="action-card action-card-primary" bindtap="scrollToCategories">
       <view class="action-icon-large">✨</view>
-      <text class="action-title">{{language === 'en' ? 'Generate New Article' : '生成新文章'}}</text>
-      <text class="action-desc">{{language === 'en' ? 'AI-powered article creation on any topic' : 'AI驱动的任意主题文章创作'}}</text>
+      <text class="action-title">{{language === 'en' ? 'Search for Knowledge' : '搜索知识'}}</text>
+      <text class="action-desc">{{language === 'en' ? 'Search and explore fly fishing topics' : '搜索并探索飞钓主题'}}</text>
       <view class="action-meta">
-        <text class="action-count">{{language === 'en' ? 'Choose category or enter custom topic' : '选择分类或输入自定义主题来生成文章'}}</text>
+        <text class="action-count">{{language === 'en' ? 'Choose category or enter topic' : '选择分类或输入主题'}}</text>
         <text class="action-arrow">↓</text>
       </view>
     </view>
@@ -61,8 +61,8 @@
       <view class="tip-item">
         <view class="tip-number">2</view>
         <view class="tip-content">
-          <text class="tip-title">{{language === 'en' ? 'Generate Custom Articles' : '生成自定义文章'}}</text>
-          <text class="tip-desc">{{language === 'en' ? 'Select a category below or type your own topic to generate a unique AI-powered article.' : '在下方选择分类或输入自己的主题，生成独特的AI驱动文章。'}}</text>
+          <text class="tip-title">{{language === 'en' ? 'Search Any Topic' : '搜索任意主题'}}</text>
+          <text class="tip-desc">{{language === 'en' ? 'Select a category below or type your own topic to find relevant articles.' : '在下方选择分类或输入主题来查找相关文章。'}}</text>
         </view>
       </view>
       <view class="tip-item">
@@ -150,8 +150,8 @@
   <!-- Category Selection -->
   <view class="swab-categories" wx:if="{{!loading}}">
     <view class="swab-categories-header">
-      <text class="swab-categories-title">{{language === 'en' ? '✨ Or Generate Your Own Article' : '✨ 选择主题来生成文章'}}</text>
-      <text class="swab-categories-subtitle">{{language === 'en' ? 'Choose a category or enter a custom topic below' : '在下方选择分类或输入自定义主题来生成文章'}}</text>
+      <text class="swab-categories-title">{{language === 'en' ? '✨ Search for Articles' : '✨ 搜索文章'}}</text>
+      <text class="swab-categories-subtitle">{{language === 'en' ? 'Choose a category or enter a custom topic below' : '在下方选择分类或输入主题'}}</text>
     </view>
     <view class="swab-category-list">
       <view
@@ -272,7 +272,7 @@
   <!-- Custom Input -->
   <view class="swab-input-section" wx:if="{{!loading}}">
     <view class="swab-input-label">
-      <text class="input-label-text">{{language === 'en' ? '📝 Or Enter Custom Topic' : '📝 或输入自定义主题来生成文章'}}</text>
+      <text class="input-label-text">{{language === 'en' ? '📝 Or Enter Search Topic' : '📝 或输入搜索主题'}}</text>
     </view>
     <view class="swab-input-wrapper">
       <input
@@ -286,7 +286,7 @@
       <view class="swab-input-clear" wx:if="{{customCategory}}" bindtap="clearCustomCategory">✕</view>
     </view>
     <text class="swab-input-hint" wx:if="{{customCategory}}">
-      {{language === 'en' ? '✨ Custom topic: ' : '✨ 自定义主题: '}}{{customCategory}}
+      {{language === 'en' ? '🔍 Searching for: ' : '🔍 正在搜索: '}}{{customCategory}}
     </text>
   </view>
 
