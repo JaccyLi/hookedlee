@@ -5,6 +5,13 @@
 
 const logger = require('./logger.js')
 
+// Health status cache
+let healthCheckCache = {
+  isHealthy: null,
+  lastCheck: 0,
+  cacheDuration: 60000 // 60 seconds cache
+}
+
 /**
  * Get backend URL from app configuration
  * @returns {string} Backend URL
@@ -15,25 +22,51 @@ function getBackendUrl() {
   // Try to get from storage first
   const storedUrl = wx.getStorageSync('backendUrl')
   if (storedUrl) {
+    logger.log('[Backend] Using stored URL:', storedUrl)
     return storedUrl
   }
 
   // Fall back to app config
   if (app.globalData.apiConfig.useBackendProxy && app.globalData.apiConfig.backendUrl) {
+    logger.log('[Backend] Using app config URL:', app.globalData.apiConfig.backendUrl)
     return app.globalData.apiConfig.backendUrl
   }
 
+  logger.log('[Backend] No backend URL configured')
   // Return empty if not configured
   return ''
 }
 
 /**
- * Check if backend proxy is enabled
+ * Check if backend is configured
+ * Only checks if URL is configured, not health status
+ * Health failures are handled by fallback logic in bigmodel.js
  * @returns {boolean} True if backend is configured
  */
 function isBackendEnabled() {
   const url = getBackendUrl()
-  return url && url.length > 0
+  const enabled = url && url.length > 0
+  logger.log('[Backend] isBackendEnabled:', enabled, 'URL:', url)
+  return enabled
+}
+
+/**
+ * Update health check cache
+ * @param {boolean} isHealthy - Whether backend is healthy
+ */
+function updateHealthCache(isHealthy) {
+  healthCheckCache.isHealthy = isHealthy
+  healthCheckCache.lastCheck = Date.now()
+  logger.log('[Backend] Health cache updated:', { isHealthy, timestamp: new Date().toISOString() })
+}
+
+/**
+ * Invalidate health check cache (call when backend configuration changes)
+ */
+function invalidateHealthCache() {
+  healthCheckCache.isHealthy = null
+  healthCheckCache.lastCheck = 0
+  logger.log('[Backend] Health cache invalidated')
 }
 
 /**
@@ -49,6 +82,7 @@ function makeBackendRequest(endpoint, data = {}, method = 'POST') {
 
     if (!backendUrl) {
       reject(new Error('Backend not configured. Please configure backend URL in settings.'))
+      updateHealthCache(false)
       return
     }
 
@@ -68,13 +102,16 @@ function makeBackendRequest(endpoint, data = {}, method = 'POST') {
         logger.log('[Backend] Response:', { status: response.statusCode, data: response.data })
 
         if (response.statusCode === 200) {
+          updateHealthCache(true)
           resolve(response.data)
         } else {
+          updateHealthCache(false)
           reject(new Error(response.data.error || `Backend error: ${response.statusCode}`))
         }
       },
       fail: (error) => {
         logger.error('[Backend] Request failed:', error)
+        updateHealthCache(false)
         reject(new Error(error.errMsg || 'Network error'))
       }
     })
@@ -182,5 +219,7 @@ module.exports = {
   getAvailableModels,
   generateArticleOutline,
   expandSection,
-  generateImage
+  generateImage,
+  updateHealthCache,
+  invalidateHealthCache
 }

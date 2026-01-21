@@ -384,27 +384,37 @@ Output ONLY the JSON object.`
       logger.log('[generateArticleOutline] Using backend:', useBackend)
 
       let content = ''
+      let backendFailed = false
 
       if (useBackend) {
-        // Use backend proxy
-        const response = await backendClient.generateArticleOutline({
-          model: model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: language === 'en' ? `Create a detailed article outline about ${topic}.` : `请创建关于${topic}的详细文章大纲。` }
-          ],
-          temperature: AI.TEMPERATURE,
-          top_p: AI.TOP_P,
-          max_tokens: AI.MAX_TOKENS_OUTLINE
-        })
+        // Try backend proxy first
+        try {
+          const response = await backendClient.generateArticleOutline({
+            model: model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: language === 'en' ? `Create a detailed article outline about ${topic}.` : `请创建关于${topic}的详细文章大纲。` }
+            ],
+            temperature: AI.TEMPERATURE,
+            top_p: AI.TOP_P,
+            max_tokens: AI.MAX_TOKENS_OUTLINE
+          })
 
-        if (response.choices && response.choices.length > 0) {
-          content = response.choices[0].message.content.trim()
-        } else {
-          throw new Error('Invalid backend response')
+          if (response.choices && response.choices.length > 0) {
+            content = response.choices[0].message.content.trim()
+            logger.log('[generateArticleOutline] Backend success')
+          } else {
+            throw new Error('Invalid backend response')
+          }
+        } catch (backendError) {
+          logger.warn('[generateArticleOutline] Backend failed, falling back to direct API:', backendError.message)
+          backendFailed = true
         }
-      } else {
-        // Use direct API call
+      }
+
+      // Fallback to direct API call if backend failed or was not enabled
+      if (!content) {
+        logger.log('[generateArticleOutline] Using direct API call')
         const apiConfig = getApiConfig(model, apiKeys || { glmApiKey: apiKey, deepseekApiKey: '' })
 
         const requestPayload = {
@@ -474,20 +484,19 @@ Output ONLY the JSON object.`
 /**
  * Expand a single section summary into full content
  * @param {Object} section - Section with index, title, summary, imagePrompt
- * @param {string} apiKey - API key (deprecated)
+ * @param {string} apiKey - API key (deprecated, backend used when available)
  * @param {string} language - Language
  * @param {string} model - Model to use
  * @param {Object} apiKeys - Object containing { glmApiKey, deepseekApiKey }
  * @returns {Promise<Object>} Expanded section with intro and subParagraphs
  */
-function expandSection(section, apiKey, language = 'en', model = 'glm-4.7', apiKeys = null) {
+async function expandSection(section, apiKey, language = 'en', model = 'glm-4.7', apiKeys = null) {
   logger.log('[expandSection] START - Section:', section.title)
   logger.log('[expandSection] Language:', language)
   logger.log('[expandSection] Model:', model)
 
-  return new Promise((resolve, reject) => {
-    const systemPrompt = language === 'en'
-      ? `You are an expert fly fishing writer. Expand the following section summary into a complete section.
+  const systemPrompt = language === 'en'
+    ? `You are an expert fly fishing writer. Expand the following section summary into a complete section.
 
 Section Title: ${section.title}
 Section Summary: ${section.summary}
@@ -511,7 +520,7 @@ Output ONLY valid JSON in this format:
     "3. Third detailed point with comprehensive information..."
   ]
 }`
-      : `你是一位资深的飞钓专家。将以下章节摘要扩展为完整章节。
+    : `你是一位资深的飞钓专家。将以下章节摘要扩展为完整章节。
 
 章节标题：${section.title}
 章节摘要：${section.summary}
@@ -536,86 +545,96 @@ Output ONLY valid JSON in this format:
   ]
 }`
 
-    // Get API config based on model selection
-    const apiConfig = getApiConfig(model, apiKeys || { glmApiKey: apiKey, deepseekApiKey: '' })
+  try {
+    // Check if backend proxy is enabled
+    const useBackend = backendClient.isBackendEnabled()
+    logger.log('[expandSection] Using backend:', useBackend)
 
-    const requestPayload = {
-      model: apiConfig.model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: language === 'en' ? 'Expand this section into full content.' : '将此章节扩展为完整内容。' }
-      ],
-      temperature: AI.TEMPERATURE,
-      top_p: AI.TOP_P,
-      max_tokens: AI.MAX_TOKENS_EXPANSION,
-      stream: false
+    let content = ''
+
+    if (useBackend) {
+      // Try backend proxy first
+      try {
+        const response = await backendClient.expandSection({
+          model: model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: language === 'en' ? 'Expand this section into full content.' : '将此章节扩展为完整内容。' }
+          ],
+          temperature: AI.TEMPERATURE,
+          top_p: AI.TOP_P,
+          max_tokens: AI.MAX_TOKENS_EXPANSION
+        })
+
+        if (response.choices && response.choices.length > 0) {
+          content = response.choices[0].message.content.trim()
+          logger.log('[expandSection] Backend success')
+        } else {
+          throw new Error('Invalid backend response')
+        }
+      } catch (backendError) {
+        logger.warn('[expandSection] Backend failed, falling back to direct API:', backendError.message)
+      }
     }
 
-    wx.request({
-      url: apiConfig.url,
-      method: 'POST',
-      header: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiConfig.key}`
-      },
-      data: requestPayload,
-      timeout: AI.TIMEOUT_EXPANSION,
-      success: (response) => {
-        logger.log('[expandSection] Response status:', response.statusCode)
+    // Fallback to direct API call if backend failed or was not enabled
+    if (!content) {
+      logger.log('[expandSection] Using direct API call')
+      const apiConfig = getApiConfig(model, apiKeys || { glmApiKey: apiKey, deepseekApiKey: '' })
 
-        try {
-          if (response.statusCode === 200 && response.data.choices && response.data.choices.length > 0) {
-            let content = response.data.choices[0].message.content.trim()
-            logger.log('[expandSection] Raw content length:', content.length)
-
-            content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '')
-
-            const sectionData = JSON.parse(content)
-            logger.log('[expandSection] Parsed sectionData, subParagraphs count:', sectionData.subParagraphs?.length || 0)
-
-            const result = {
-              intro: sectionData.intro || section.summary,
-              subParagraphs: sectionData.subParagraphs || [],
-              imagePrompt: section.imagePrompt
-            }
-            logger.log('[expandSection] RESOLVING with subParagraphs count:', result.subParagraphs.length)
-            resolve(result)
-          } else {
-            logger.error('[expandSection] API returned non-200 or no choices, Status code:', response.statusCode)
-            // Fallback to original summary if API fails
-            const fallback = {
-              intro: section.summary,
-              subParagraphs: [],
-              imagePrompt: section.imagePrompt
-            }
-            logger.warn('[expandSection] FALLBACK - using empty subParagraphs')
-            resolve(fallback)
-          }
-        } catch (error) {
-          logger.error('[expandSection] Parse error:', error.message)
-          // Fallback to original summary on parse error
-          const fallback = {
-            intro: section.summary,
-            subParagraphs: [],
-            imagePrompt: section.imagePrompt
-          }
-          logger.warn('[expandSection] FALLBACK (parse error) - using empty subParagraphs')
-          resolve(fallback)
-        }
-      },
-      fail: (error) => {
-        logger.error('[expandSection] Network error:', error.errMsg || 'Unknown error')
-        // Fallback to original summary on network error
-        const fallback = {
-          intro: section.summary,
-          subParagraphs: [],
-          imagePrompt: section.imagePrompt
-        }
-        logger.warn('[expandSection] FALLBACK (network error) - using empty subParagraphs')
-        resolve(fallback)
+      const requestPayload = {
+        model: apiConfig.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: language === 'en' ? 'Expand this section into full content.' : '将此章节扩展为完整内容。' }
+        ],
+        temperature: AI.TEMPERATURE,
+        top_p: AI.TOP_P,
+        max_tokens: AI.MAX_TOKENS_EXPANSION,
+        stream: false
       }
-    })
-  })
+
+      const response = await new Promise((resolve, reject) => {
+        wx.request({
+          url: apiConfig.url,
+          method: 'POST',
+          header: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiConfig.key}`
+          },
+          data: requestPayload,
+          timeout: AI.TIMEOUT_EXPANSION,
+          success: resolve,
+          fail: reject
+        })
+      })
+
+      if (response.statusCode === 200 && response.data.choices && response.data.choices.length > 0) {
+        content = response.data.choices[0].message.content.trim()
+      } else {
+        throw new Error('Invalid API response')
+      }
+    }
+
+    // Parse and return content
+    content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '')
+    const sectionData = JSON.parse(content)
+    logger.log('[expandSection] Parsed sectionData, subParagraphs count:', sectionData.subParagraphs?.length || 0)
+
+    return {
+      intro: sectionData.intro || section.summary,
+      subParagraphs: sectionData.subParagraphs || [],
+      imagePrompt: section.imagePrompt
+    }
+  } catch (error) {
+    logger.error('[expandSection] Error:', error)
+    // Fallback to original summary on error
+    return {
+      intro: section.summary,
+      subParagraphs: [],
+      imagePrompt: section.imagePrompt
+    }
+  }
 }
 
 /**
@@ -634,43 +653,50 @@ function generateImage(prompt, apiKey) {
       logger.log('[generateImage] Using backend:', useBackend)
 
       if (useBackend) {
-        // Use backend proxy
-        imageUrl = await backendClient.generateImage(prompt, AI.IMAGE_SIZE)
-        resolve(imageUrl)
-      } else {
-        // Use direct API call
-        const requestPayload = {
-          model: 'cogview-3-flash',
-          prompt: prompt,
-          size: AI.IMAGE_SIZE
+        // Try backend proxy first
+        try {
+          imageUrl = await backendClient.generateImage(prompt, AI.IMAGE_SIZE)
+          logger.log('[generateImage] Backend success')
+          resolve(imageUrl)
+          return
+        } catch (backendError) {
+          logger.warn('[generateImage] Backend failed, falling back to direct API:', backendError.message)
         }
-
-        wx.request({
-          url: IMAGE_API_URL,
-          method: 'POST',
-          header: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          },
-          data: requestPayload,
-          timeout: AI.TIMEOUT_IMAGE,
-          success: (response) => {
-            try {
-              if (response.statusCode === 200 && response.data && response.data.data && response.data.data.length > 0) {
-                const imageUrl = response.data.data[0].url
-                resolve(imageUrl)
-              } else {
-                reject(new Error('Invalid image API response'))
-              }
-            } catch (error) {
-              reject(new Error(`Failed to parse image API response: ${error.message}`))
-            }
-          },
-          fail: (error) => {
-            reject(new Error(`Image API request failed: ${error.errMsg || 'Network error'}`))
-          }
-        })
       }
+
+      // Fallback to direct API call if backend failed or was not enabled
+      logger.log('[generateImage] Using direct API call')
+      const requestPayload = {
+        model: 'cogview-3-flash',
+        prompt: prompt,
+        size: AI.IMAGE_SIZE
+      }
+
+      wx.request({
+        url: IMAGE_API_URL,
+        method: 'POST',
+        header: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        data: requestPayload,
+        timeout: AI.TIMEOUT_IMAGE,
+        success: (response) => {
+          try {
+            if (response.statusCode === 200 && response.data && response.data.data && response.data.data.length > 0) {
+              const imageUrl = response.data.data[0].url
+              resolve(imageUrl)
+            } else {
+              reject(new Error('Invalid image API response'))
+            }
+          } catch (error) {
+            reject(new Error(`Failed to parse image API response: ${error.message}`))
+          }
+        },
+        fail: (error) => {
+          reject(new Error(`Image API request failed: ${error.errMsg || 'Network error'}`))
+        }
+      })
     } catch (error) {
       logger.error('[generateImage] Error:', error)
       reject(error)

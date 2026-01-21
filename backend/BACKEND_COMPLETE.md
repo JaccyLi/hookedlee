@@ -206,7 +206,7 @@ POST /api/proxy/image
 ## 📊 File Structure
 
 ```
-hookedli/
+hookedlee/
 ├── backend/                    # NEW - Backend server
 │   ├── server.js              # Express server
 │   ├── package.json           # Dependencies

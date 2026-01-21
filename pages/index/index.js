@@ -1,5 +1,6 @@
 const bigModelModule = require('../../utils/bigmodel.js')
 const categoriesModule = require('../../utils/categories.js')
+const backendClient = require('../../utils/backend-client.js')
 const flashcardsModule = require('./flashcards/fly-fishing-flashcards.js')
 const flyCastingFlashcardsModule = require('./flashcards/fly_casting_flashcards.js')
 const distanceCastingFlashcardsModule = require('./flashcards/distance_casting_flashcards.js')
@@ -608,9 +609,12 @@ Page({
     const app = getApp()
     const apiKey = app.globalData.bigModelApiKey
 
-    // Validate API key
-    if (!validator.validateApiKey(apiKey)) {
-      logger.error('[generateCard] Invalid API key')
+    // Skip API key validation if backend proxy is enabled
+    // Backend manages API keys securely
+    const useBackend = backendClient.isBackendEnabled()
+
+    if (!useBackend && !validator.validateApiKey(apiKey)) {
+      logger.error('[generateCard] Invalid API key and no backend configured')
       wx.showToast({
         title: this.data.language === 'en'
           ? 'Please configure API key in settings'
@@ -620,6 +624,8 @@ Page({
       })
       return
     }
+
+    logger.log('[generateCard] Using backend:', useBackend)
 
     if (this.data.shouldCancel) {
       this.setData({

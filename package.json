@@ -1,1 +1,17 @@
-{}
+{
+  "name": "hookedlee",
+  "version": "1.0.0",
+  "description": "HookedLee - AI-Powered Fly Fishing Article Generator for WeChat Mini Program",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "wechat",
+    "miniprogram",
+    "ai",
+    "fly-fishing",
+    "article-generator"
+  ],
+  "author": "",
+  "license": "MIT"
+}

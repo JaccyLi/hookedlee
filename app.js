@@ -11,8 +11,8 @@ App({
 
     // API configuration for backend migration
     apiConfig: {
-      useBackendProxy: false, // TODO: Set to true when backend is ready
-      backendUrl: '' // TODO: Configure backend URL when ready
+      useBackendProxy: true, // Backend proxy enabled
+      backendUrl: 'https://suosuoli.com' // Production backend URL (standard HTTPS port 443)
     }
   },
 
@@ -37,6 +37,13 @@ App({
     const savedDebugMode = wx.getStorageSync('debugMode')
     if (savedDebugMode !== undefined && savedDebugMode !== null) {
       this.globalData.debugMode = savedDebugMode
+    }
+
+    // Initialize backend URL in storage for backend-client
+    // Only save to storage if not already set (don't override user's custom setting)
+    const savedBackendUrl = wx.getStorageSync('backendUrl')
+    if (!savedBackendUrl && this.globalData.apiConfig.backendUrl) {
+      wx.setStorageSync('backendUrl', this.globalData.apiConfig.backendUrl)
     }
   }
 })
