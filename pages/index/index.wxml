@@ -105,6 +105,14 @@
           </view>
         </view>
 
+        <!-- Scroll to Top Button -->
+        <view class="swab-scroll-top-container">
+          <button class="swab-scroll-top-btn" bindtap="scrollToTop">
+            <text class="scroll-icon">↑</text>
+            <text class="scroll-text">{{language === 'en' ? 'Back to Top' : '返回顶部'}}</text>
+          </button>
+        </view>
+
         <view class="swab-references" wx:if="{{cardData.references && cardData.references.length > 0}}">
           <text class="swab-ref-title">{{language === 'en' ? 'REFERENCES' : '参考来源'}}</text>
           <view class="swab-ref-list">

@@ -384,6 +384,50 @@ page {
   border-top: 8rpx solid #000000;
 }
 
+/* Scroll to Top Button */
+.swab-scroll-top-container {
+  padding: 48rpx 48rpx 32rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.swab-scroll-top-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  padding: 24rpx 48rpx;
+  background: #000000;
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 700;
+  border-radius: 100rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.swab-scroll-top-btn::after {
+  border: none;
+}
+
+.swab-scroll-top-btn:active {
+  transform: scale(0.95);
+  opacity: 0.8;
+}
+
+.scroll-icon {
+  font-size: 32rpx;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.scroll-text {
+  font-size: 28rpx;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1rpx;
+}
+
 .swab-ref-title {
   display: block;
   font-size: 56rpx;

@@ -906,6 +906,13 @@ Page({
     })
   },
 
+  scrollToTop() {
+    wx.pageScrollTo({
+      scrollTop: 0,
+      duration: 300
+    })
+  },
+
   onShareAppMessage() {
     const language = this.data.language || 'en'
     return {
