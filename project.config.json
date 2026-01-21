@@ -1,7 +1,20 @@
 {
   "description": "Project configuration file for WeChat Mini Program - HookedLee",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "file",
+        "value": "backend"
+      },
+      {
+        "type": "file",
+        "value": "node_modules"
+      },
+      {
+        "type": "file",
+        "value": ".git"
+      }
+    ],
     "include": []
   },
   "setting": {

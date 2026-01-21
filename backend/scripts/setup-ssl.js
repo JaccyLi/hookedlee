@@ -107,8 +107,8 @@ const configureExistingCerts = async () => {
 
   if (caPath && !fs.existsSync(caPath)) {
     console.warn(`⚠️  CA file not found: ${caPath}`)
-    const continue = await question('Continue without CA bundle? (y/n): ')
-    if (continue.toLowerCase() !== 'y') {
+    const shouldContinue = await question('Continue without CA bundle? (y/n): ')
+    if (shouldContinue.toLowerCase() !== 'y') {
       return
     }
   } else if (caPath) {
