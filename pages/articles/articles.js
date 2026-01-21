@@ -57,6 +57,12 @@ Page({
   },
 
   onLoad() {
+    // Enable sharing in production
+    wx.showShareMenu({
+      withShareTicket: true,
+      menus: ['shareAppMessage', 'shareTimeline']
+    })
+
     const app = getApp()
     const savedLanguage = app.globalData.language || 'en'
 
@@ -156,6 +162,15 @@ Page({
       title: language === 'en' ? 'HookedLee - Your Fly Fishing Knowledge Base' : 'HookedLee - 你的飞钓知识库',
       path: '/pages/articles/articles',
       imageUrl: '/images/share-cover.jpg'
+    }
+  },
+
+  onShareTimeline() {
+    const language = this.data.language || 'en'
+    return {
+      title: language === 'en' ? 'HookedLee - Your Fly Fishing Knowledge Base' : 'HookedLee - 你的飞钓知识库',
+      imageUrl: '/images/share-cover.jpg',
+      query: ''
     }
   }
 })
