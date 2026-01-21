@@ -20,6 +20,9 @@ const app = express()
 const HTTP_PORT = process.env.HTTP_PORT || 3000
 const HTTPS_PORT = process.env.HTTPS_PORT || 3443
 
+// Trust proxy - needed when behind nginx reverse proxy
+app.set('trust proxy', 1)
+
 // ========== MIDDLEWARE ==========
 
 // Security headers
@@ -351,8 +354,14 @@ if (sslExists) {
 // ========== CREATE HTTP SERVER (redirects to HTTPS) ==========
 
 const httpServer = http.createServer((req, res) => {
-  // Redirect all HTTP traffic to HTTPS
-  if (sslExists) {
+  // Check if request is coming from nginx reverse proxy
+  const forwardedProto = req.headers['x-forwarded-proto']
+
+  // If behind nginx proxy (https forwarded), serve directly without redirect
+  if (forwardedProto === 'https') {
+    app(req, res)
+  } else if (sslExists) {
+    // Redirect all direct HTTP traffic to HTTPS
     const httpsHost = req.headers.host.split(':')[0] // Remove port if present
     const httpsUrl = `https://${httpsHost}:${HTTPS_PORT}${req.url}`
     console.log(`[HTTP → HTTPS] Redirecting to: ${httpsUrl}`)
