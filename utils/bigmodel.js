@@ -33,6 +33,13 @@ function getApiConfig(model, apiKeys) {
       key: apiKeys.deepseekApiKey,
       model: MODELS.DEEPSEEK_REASONER
     }
+  } else if (model === MODELS.GLM_4_7_FLASHX) {
+    // GLM-4.7-FlashX uses BigModel API
+    return {
+      url: GLM_API_URL,
+      key: apiKeys.glmApiKey,
+      model: MODELS.GLM_4_7_FLASHX
+    }
   } else {
     // Default to GLM-4.7
     return {
@@ -285,6 +292,11 @@ function generateArticleOutline(category, apiKey, language = 'en', onProgress = 
   return new Promise(async (resolve, reject) => {
     const categoryPrompts = categoryPromptsData
 
+    // Use GLM-4.7-FlashX for framework generation when glm-4.7 is selected
+    // FlashX is optimized for speed and efficiency in structural generation
+    const outlineModel = model === MODELS.GLM_4_7 ? MODELS.GLM_4_7_FLASHX : model
+    logger.log('[generateArticleOutline] Using model:', model, '→ Outline model:', outlineModel)
+
     // Use the category directly if it's not in the predefined list (custom input)
     // Otherwise use the predefined prompt
     const topic = categoryPrompts[language][category] || category
@@ -390,7 +402,7 @@ Output ONLY the JSON object.`
         // Try backend proxy first
         try {
           const response = await backendClient.generateArticleOutline({
-            model: model,
+            model: outlineModel,
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: language === 'en' ? `Create a detailed article outline about ${topic}.` : `请创建关于${topic}的详细文章大纲。` }
@@ -415,7 +427,7 @@ Output ONLY the JSON object.`
       // Fallback to direct API call if backend failed or was not enabled
       if (!content) {
         logger.log('[generateArticleOutline] Using direct API call')
-        const apiConfig = getApiConfig(model, apiKeys || { glmApiKey: apiKey, deepseekApiKey: '' })
+        const apiConfig = getApiConfig(outlineModel, apiKeys || { glmApiKey: apiKey, deepseekApiKey: '' })
 
         const requestPayload = {
           model: apiConfig.model,
