@@ -1,0 +1,26 @@
+[Unit]
+Description=HookedLee Backend Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/data/hookedli/backend
+Environment="NODE_ENV=production"
+Environment="PATH=/root/.nvm/versions/node/v24.13.0/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/root/.nvm/versions/node/v24.13.0/bin/node server.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hookedlee-backend
+
+# Security settings (relaxed for root with nvm)
+NoNewPrivileges=false
+PrivateTmp=true
+
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
