@@ -1018,15 +1018,60 @@ Page({
 
   async loadAllFlashcards() {
     // Load all flashcards from all categories
-    const categories = ['casting', 'fly_casting', 'distance_casting', 'slackline_presentation']
+    const flashcardFiles = [
+      'fly-fishing-flashcards',
+      'fly_casting-flashcards',
+      'distance_casting-flashcards',
+      'slackline_presentation-flashcards'
+    ]
     const allCards = []
 
-    for (const category of categories) {
+    // Category metadata
+    const categoryInfo = {
+      'fly-fishing-flashcards': {
+        key: 'basics',
+        color: '#FF6B6B',
+        icon: '🎯',
+        label: 'BASICS'
+      },
+      'fly_casting-flashcards': {
+        key: 'casting',
+        color: '#4ECDC4',
+        icon: '🎣',
+        label: 'CASTING'
+      },
+      'distance_casting-flashcards': {
+        key: 'distance',
+        color: '#45B7D1',
+        icon: '📏',
+        label: 'DISTANCE'
+      },
+      'slackline_presentation-flashcards': {
+        key: 'slackline',
+        color: '#96CEB4',
+        icon: '🎪',
+        label: 'SLACKLINE'
+      }
+    }
+
+    for (const filename of flashcardFiles) {
       try {
-        const module = require(`./flashcards/${category}_flashcards.js`)
-        allCards.push(...module.flashcards)
+        const module = require(`./flashcards/${filename}.js`)
+        const info = categoryInfo[filename]
+
+        // Format each flashcard with category info and language-specific text
+        const formattedCards = module.flashcards.map(card => ({
+          ...card,
+          category: info.key,
+          color: info.color,
+          icon: info.icon,
+          label: info.label
+        }))
+
+        allCards.push(...formattedCards)
+        logger.log(`[loadAllFlashcards] Loaded ${filename}:`, module.flashcards.length, 'cards')
       } catch (error) {
-        logger.warn(`[loadAllFlashcards] Failed to load ${category}:`, error)
+        logger.warn(`[loadAllFlashcards] Failed to load ${filename}:`, error)
       }
     }
 
@@ -1035,6 +1080,7 @@ Page({
       flashcards: allCards
     })
 
+    logger.log(`[loadAllFlashcards] Total loaded: ${allCards.length} flashcards`)
     return allCards
   },
 
