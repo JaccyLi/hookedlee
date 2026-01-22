@@ -728,7 +728,7 @@ ${sentence}
     // Use backend proxy for sentence expansion
     logger.log('[expandSentence] Calling backend proxy with model:', model)
 
-    const content = await backendClient.makeRequest('/api/proxy/chat', {
+    const content = await backendClient.makeBackendRequest('/api/proxy/chat', {
       model: model,
       messages: [
         { role: 'system', content: systemPrompt },

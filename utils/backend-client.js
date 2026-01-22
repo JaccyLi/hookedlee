@@ -232,6 +232,11 @@ async function makeBackendRequest(endpoint, data = {}, method = 'POST', requireA
       throw new Error('Authentication expired. Please try again.')
     }
 
+    // Handle rate limit errors
+    if (response.statusCode === 429) {
+      throw new Error('Rate limit exceeded')
+    }
+
     if (response.statusCode === 200) {
       updateHealthCache(true)
       return response.data

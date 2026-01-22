@@ -751,40 +751,101 @@ Page({
         streamingActive: true
       })
 
-      // Assign models and create expansion promises (all parallel)
-      // Each section has 5 sentences, expand each sentence individually (15 parallel calls total)
-      const expansionPromises = outline.sections.map((section, sectionIndex) => {
-        // Expand each sentence in the section as a separate parallel call
-        const sentencePromises = section.sentences.map((sentence, sentenceIndex) => {
-          return new Promise(async (resolve) => {
-            const sectionModel = 'deepseek-chat'
+      // ===== PARALLEL PROCESSING: Text Expansion + Image Generation =====
 
-            logger.log(`[generateCard] Section ${sectionIndex + 1}, Sentence ${sentenceIndex + 1} using: ${sectionModel} (parallel)`)
+      // Determine hero image model based on quality mode
+      const heroImageModel = selectedModel === 'high-quality' ? 'qwen-image-max' : null
+      const sectionImageModel = null // Will use cogview-3-flash
 
-            try {
-              // Expand single sentence into paragraph
-              const paragraph = await expandSentence(section, sentence, sentenceIndex, apiKey, self.data.language, sectionModel, apiKeys)
-              logger.log(`[generateCard] Section ${sectionIndex + 1}, Sentence ${sentenceIndex + 1} expanded successfully`)
+      logger.log('[generateCard] Starting parallel processing: text expansion + image generation')
+      logger.log('[Image Models] Hero:', heroImageModel || 'cogview-3-flash', 'Sections: cogview-3-flash')
 
-              resolve({ sentenceIndex, paragraph })
-            } catch (error) {
-              logger.error(`[generateCard] Section ${sectionIndex + 1}, Sentence ${sentenceIndex + 1} expansion failed:`, error)
-              // Return fallback paragraph
-              resolve({
-                sentenceIndex,
-                paragraph: `${sentenceIndex + 1}. ${sentence}`
-              })
+      // Process 1: Text Expansion (15 sentences in batches of 3)
+      const textExpansionProcess = async () => {
+        logger.log('[Text Expansion] Starting...')
+
+        // Batch processing function
+        const processBatch = async (items, batchSize, delayMs, processor) => {
+          const results = []
+          for (let i = 0; i < items.length; i += batchSize) {
+            const batch = items.slice(i, i + batchSize)
+            logger.log(`[processBatch] Processing batch ${Math.floor(i / batchSize) + 1}, size: ${batch.length}`)
+
+            const batchResults = await Promise.all(batch.map((item, idx) => processor(item, i + idx)))
+            results.push(...batchResults)
+
+            if (i + batchSize < items.length) {
+              logger.log(`[processBatch] Waiting ${delayMs}ms before next batch...`)
+              await new Promise(resolve => setTimeout(resolve, delayMs))
             }
+          }
+          return results
+        }
+
+        // Collect all sentences
+        const allSentences = []
+        outline.sections.forEach((section, sectionIndex) => {
+          section.sentences.forEach((sentence, sentenceIndex) => {
+            allSentences.push({
+              section,
+              sectionIndex,
+              sentence,
+              sentenceIndex,
+              model: 'deepseek-chat'
+            })
           })
         })
 
-        // Wait for all 5 sentences in this section to complete
-        return Promise.all(sentencePromises).then(paragraphs => {
-          // Sort paragraphs by sentenceIndex and combine into section
-          const sortedParagraphs = paragraphs.sort((a, b) => a.sentenceIndex - b.sentenceIndex).map(p => p.paragraph)
+        // Process in batches of 3
+        const processedSentences = await processBatch(
+          allSentences,
+          3,
+          2000,
+          async (item, globalIndex) => {
+            const { section, sectionIndex, sentence, sentenceIndex, model } = item
 
-          // Create intro from first paragraph (or use section title)
-          const intro = sortedParagraphs.length > 0
+            logger.log(`[Text Expansion] Section ${sectionIndex + 1}, Sentence ${sentenceIndex + 1} (${globalIndex + 1}/${allSentences.length})`)
+
+            try {
+              let paragraph
+              let retries = 2
+
+              while (retries > 0) {
+                try {
+                  paragraph = await expandSentence(section, sentence, sentenceIndex, apiKey, self.data.language, model, apiKeys)
+                  logger.log(`[Text Expansion] Section ${sectionIndex + 1}, Sentence ${sentenceIndex + 1} expanded`)
+                  break
+                } catch (error) {
+                  retries--
+                  if (retries > 0 && error.message && error.message.includes('Rate limit')) {
+                    logger.log(`[Text Expansion] Rate limited, retrying in 3s... (${retries} left)`)
+                    await new Promise(resolve => setTimeout(resolve, 3000))
+                  } else {
+                    throw error
+                  }
+                }
+              }
+
+              return { sectionIndex, sentenceIndex, paragraph }
+            } catch (error) {
+              logger.error(`[Text Expansion] Section ${sectionIndex + 1}, Sentence ${sentenceIndex + 1} failed:`, error)
+              return {
+                sectionIndex,
+                sentenceIndex,
+                paragraph: `${sentenceIndex + 1}. ${sentence}`
+              }
+            }
+          }
+        )
+
+        // Group into sections
+        const expandedSections = outline.sections.map((section, sectionIndex) => {
+          const sectionSentences = processedSentences
+            .filter(p => p.sectionIndex === sectionIndex)
+            .sort((a, b) => a.sentenceIndex - b.sentenceIndex)
+            .map(p => p.paragraph)
+
+          const intro = sectionSentences.length > 0
             ? `Explore ${section.title} through these key insights:`
             : section.title
 
@@ -792,89 +853,118 @@ Page({
             index: sectionIndex,
             expandedSection: {
               intro: intro,
-              subParagraphs: sortedParagraphs,
+              subParagraphs: sectionSentences,
               imageUrl: ''
             }
           }
         })
-      })
 
-      // Wait for all sections to complete in parallel
-      logger.log('[generateCard] Waiting for all sections to complete...')
-      const expandedSections = await Promise.all(expansionPromises)
-      logger.log('[generateCard] All 3 sections expanded in parallel')
-      logger.log('[generateCard] Expanded sections count:', expandedSections.length)
+        logger.log('[Text Expansion] All 3 sections completed')
+        return expandedSections
+      }
+
+      // Process 2: Image Generation (4 images in batches of 2)
+      const imageGenerationProcess = async () => {
+        logger.log('[Image Generation] Starting...')
+
+        // Prepare image tasks
+        const imageTasks = [
+          {
+            type: 'hero',
+            fn: () => generateHeroImage(outline.title, outline.originalCategory, apiKey, null, heroImageModel),
+            index: -1
+          },
+          ...outline.sections.map((section, i) => ({
+            type: 'section',
+            fn: () => generateImage(section.imagePrompt, apiKey, false, sectionImageModel),
+            index: i
+          }))
+        ]
+
+        const results = {
+          heroImageUrl: null,
+          sectionImageUrls: ['', '', '']
+        }
+
+        // Process in batches of 2
+        const imageBatchSize = 2
+        for (let i = 0; i < imageTasks.length; i += imageBatchSize) {
+          const batch = imageTasks.slice(i, i + imageBatchSize)
+          const batchNum = Math.floor(i / imageBatchSize) + 1
+
+          logger.log(`[Image Generation] Batch ${batchNum}/${Math.ceil(imageTasks.length / imageBatchSize)}, size: ${batch.length}`)
+
+          this.setData({
+            loadingDetail: isEn
+              ? `Loading images (batch ${batchNum}/${Math.ceil(imageTasks.length / imageBatchSize)})...`
+              : `加载图片中（批次 ${batchNum}/${Math.ceil(imageTasks.length / imageBatchSize)}）...`
+          })
+
+          const batchPromises = batch.map(async (task) => {
+            try {
+              const url = await task.fn()
+
+              if (task.type === 'hero') {
+                results.heroImageUrl = url
+                if (url) {
+                  logger.log('[Image Generation] Hero image generated (model:', heroImageModel || 'cogview-3-flash', ')')
+                }
+              } else {
+                results.sectionImageUrls[task.index] = url || ''
+                if (url) {
+                  logger.log(`[Image Generation] Section ${task.index + 1} image generated (model: cogview-3-flash)`)
+                }
+              }
+            } catch (err) {
+              if (task.type === 'hero') {
+                logger.error('[Image Generation] Hero image failed:', err)
+                results.heroImageUrl = null
+              } else {
+                logger.error(`[Image Generation] Section ${task.index + 1} image failed:`, err)
+                results.sectionImageUrls[task.index] = ''
+              }
+            }
+          })
+
+          await Promise.all(batchPromises)
+
+          if (i + imageBatchSize < imageTasks.length) {
+            logger.log('[Image Generation] Waiting 2s before next batch...')
+            await new Promise(resolve => setTimeout(resolve, 2000))
+          }
+        }
+
+        logger.log('[Image Generation] All images completed')
+        return results
+      }
+
+      // Run both processes in parallel
+      const [expandedSections, imageResults] = await Promise.all([
+        textExpansionProcess(),
+        imageGenerationProcess()
+      ])
+
+      logger.log('[generateCard] Parallel processing completed - text + images ready')
 
       this.setData({
         streamingActive: false
       })
 
-      // Step 2: Generate images in batches of 2 (parallel within batch, sequential between batches)
-      this.setData({
-        loadingStep: isEn ? 'Loading images...' : '加载图片中...',
-        loadingDetail: isEn ? 'Searching images for all sections...' : '正在查找所有章节图片...'
-      })
-
-      const paragraphs = expandedSections.map(({ expandedSection }) => ({
+      // Assemble final paragraphs with both text and images
+      const paragraphs = expandedSections.map(({ expandedSection }, i) => ({
         ...expandedSection,
-        imageUrl: ''
+        imageUrl: imageResults.sectionImageUrls[i] || ''
       }))
 
-      // Generate all 4 images in parallel (hero + 3 sections)
-      // CogView-3-Flash rate limit is 4, so we can do all at once
-      this.setData({
-        loadingDetail: isEn ? 'Searching images (4 parallel)...' : '正在查找图片（4个并行）...'
-      })
-
-      // Determine hero image model based on quality mode
-      // High quality mode: use qwen-image-max for hero image
-      // Default mode: use cogview-3-flash for hero image
-      const heroImageModel = selectedModel === 'high-quality' ? 'qwen-image-max' : null
-      // Section images always use cogview-3-flash (default)
-      const sectionImageModel = null // Will use cogview-3-flash
-
-      logger.log('[Image Models] Hero:', heroImageModel || 'cogview-3-flash', 'Sections: cogview-3-flash')
-
-      let heroImageUrl = null
-      const allImagePromises = [
-        // Hero image - use qwen-image-max if in high-quality mode
-        generateHeroImage(outline.title, outline.originalCategory, apiKey, null, heroImageModel).then(url => {
-          heroImageUrl = url
-          if (url) {
-            logger.log('[Hero] Image generated (parallel, model:', heroImageModel || 'cogview-3-flash', ')')
-          }
-        }).catch(err => {
-          logger.error('[Hero] Image generation failed:', err)
-          heroImageUrl = null
-        }),
-        // All section images - always use cogview-3-flash
-        ...expandedSections.map((section, i) =>
-          generateImage(outline.sections[i].imagePrompt, apiKey, false, sectionImageModel).then(url => {
-            if (url) {
-              paragraphs[i].imageUrl = url
-              logger.log(`[Section ${i + 1}] Image generated (parallel, model: cogview-3-flash)`)
-            }
-          }).catch(err => logger.error(`[Section ${i + 1}] Image generation failed:`, err))
-        )
-      ]
-
-      await Promise.all(allImagePromises)
-
-      // Reattach expanded content to paragraphs
-      expandedSections.forEach(({ index, expandedSection }, i) => {
-        if (!paragraphs[i].imageUrl) {
-          paragraphs[i].imageUrl = ''
-        }
-        Object.assign(paragraphs[i], {
-          intro: expandedSection.intro,
-          subParagraphs: expandedSection.subParagraphs
-        })
-      })
-
-      logger.log('[generateCard] All 4 images generated in parallel')
+      logger.log('[generateCard] Final assembly completed')
       logger.log('[generateCard] Total paragraphs count:', paragraphs.length)
+      logger.log('[generateCard] Hero image URL:', imageResults.heroImageUrl ? 'Generated' : 'Failed')
       paragraphs.forEach((para, index) => {
-        logger.log(`[generateCard] Final paragraph ${index + 1} subParagraphs count:`, para.subParagraphs?.length || 0)
+        logger.log(`[generateCard] Final paragraph ${index + 1}:`, {
+          introLength: para.intro?.length || 0,
+          subParagraphsCount: para.subParagraphs?.length || 0,
+          hasImageUrl: !!para.imageUrl
+        })
       })
 
       if (self.data.shouldCancel) {
@@ -891,7 +981,7 @@ Page({
         paragraphs: paragraphs,
         references: outline.references || [],
         category: outline.category,
-        imageUrl: heroImageUrl || '',
+        imageUrl: imageResults.heroImageUrl || '',
         source: 'Article',
         timestamp: new Date().toISOString()
       }
