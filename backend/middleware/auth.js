@@ -8,7 +8,13 @@ const jwt = require('jsonwebtoken')
 // WeChat App credentials (from .env)
 const WECHAT_APP_ID = process.env.WECHAT_APP_ID
 const WECHAT_APP_SECRET = process.env.WECHAT_APP_SECRET
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
+
+// Support multiple JWT secrets for rotation (comma-separated)
+// Current secret is first, old secrets can be kept for verification
+const JWT_SECRETS = (process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production')
+  .split(',')
+  .map(s => s.trim())
+const JWT_SECRET = JWT_SECRETS[0] // Use first secret for signing
 
 // In-memory user rate limiting (production should use Redis)
 const userRateLimits = new Map()
@@ -20,14 +26,6 @@ async function verifyWeChatCode(code) {
   try {
     const axios = require('axios')
     const url = 'https://api.weixin.qq.com/sns/jscode2session'
-
-    // Debug: Check if credentials are loaded
-    console.log('[WeChat Auth] Credentials check:', {
-      appId: WECHAT_APP_ID ? `${WECHAT_APP_ID.substring(0, 10)}...` : 'MISSING',
-      appIdLength: WECHAT_APP_ID?.length || 0,
-      secretLength: WECHAT_APP_SECRET?.length || 0,
-      code: code ? `${code.substring(0, 10)}...` : 'MISSING'
-    })
 
     if (!WECHAT_APP_ID || !WECHAT_APP_SECRET) {
       console.error('[WeChat Auth] MISSING CREDENTIALS:', {
@@ -72,15 +70,22 @@ function generateToken(openid) {
 }
 
 /**
- * Verify JWT token
+ * Verify JWT token (tries all secrets for rotation support)
  */
 function verifyToken(token) {
-  try {
-    return jwt.verify(token, JWT_SECRET)
-  } catch (error) {
-    console.error('[Auth] Token verification failed:', error.message)
-    return null
+  // Try each secret until one works
+  for (const secret of JWT_SECRETS) {
+    try {
+      const decoded = jwt.verify(token, secret)
+      return decoded
+    } catch (error) {
+      // Continue to next secret
+      continue
+    }
   }
+
+  console.error('[Auth] Token verification failed: No valid secret found')
+  return null
 }
 
 /**
