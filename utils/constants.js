@@ -9,12 +9,12 @@ module.exports = {
   AI: {
     // Maximum tokens for different request types
     MAX_TOKENS_OUTLINE: 4096,
-    MAX_TOKENS_EXPANSION: 4096,
+    MAX_TOKENS_EXPANSION: 16384,  // Increased for 3 detailed paragraphs
     MAX_TOKENS_FULL_ARTICLE: 8192,
 
     // Request timeouts in milliseconds
     TIMEOUT_OUTLINE: 90000,
-    TIMEOUT_EXPANSION: 60000,
+    TIMEOUT_EXPANSION: 120000,  // Increased timeout for longer responses
     TIMEOUT_IMAGE: 60000,
     TIMEOUT_FULL_ARTICLE: 120000,
 
