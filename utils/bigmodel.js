@@ -299,9 +299,9 @@ function generateArticleOutline(category, apiKey, language = 'en', onProgress = 
   return new Promise(async (resolve, reject) => {
     const categoryPrompts = categoryPromptsData
 
-    // Use DeepSeek-Chat for outline generation (fast and efficient)
-    const outlineModel = MODELS.DEEPSEEK_CHAT
-    logger.log('[generateArticleOutline] User model:', model, '→ Outline model:', outlineModel, '(DeepSeek-Chat for all)')
+    // Use DeepSeek-Reasoner for outline generation (highest quality framework)
+    const outlineModel = MODELS.DEEPSEEK_REASONER
+    logger.log('[generateArticleOutline] User model:', model, '→ Outline model:', outlineModel, '(DeepSeek-Reasoner for all)')
 
     // Use the category directly if it's not in the predefined list (custom input)
     // Otherwise use the predefined prompt

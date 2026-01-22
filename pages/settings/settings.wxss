@@ -256,13 +256,6 @@ page {
   letter-spacing: -0.5rpx;
 }
 
-.model-subname {
-  font-size: 24rpx;
-  font-weight: 600;
-  color: #666666;
-  margin-bottom: 8rpx;
-}
-
 /* Model Tags */
 .model-tags {
   display: flex;

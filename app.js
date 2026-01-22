@@ -5,7 +5,7 @@ App({
     // Current implementation uses client-side storage (not secure for production)
     bigModelApiKey: '', // Set via wx.setStorageSync('bigModelApiKey')
     deepseekApiKey: '', // Set via wx.setStorageSync('deepseekApiKey')
-    selectedModel: 'deepseek-chat', // Options: 'glm-4.7', 'deepseek-chat', or 'deepseek-reasoner'
+    selectedModel: 'default', // Options: 'default' (smart mode) or 'deepseek-reasoner' (high quality mode)
     language: 'zh',
     debugMode: false, // Set to true for development, false for production
 
@@ -13,7 +13,10 @@ App({
     apiConfig: {
       useBackendProxy: true, // Backend proxy enabled
       backendUrl: 'https://suosuoli.com' // Production backend URL (standard HTTPS port 443)
-    }
+    },
+
+    // Multi-key load balancing info (fetched from backend)
+    bigModelKeyCount: 0 // Number of BigModel API keys available for rotation
   },
 
   onLaunch() {
@@ -45,5 +48,33 @@ App({
     if (!savedBackendUrl && this.globalData.apiConfig.backendUrl) {
       wx.setStorageSync('backendUrl', this.globalData.apiConfig.backendUrl)
     }
+
+    // Fetch backend configuration (multi-key count, available models, etc.)
+    this.fetchBackendConfig()
+  },
+
+  /**
+   * Fetch backend configuration including available models and API key count
+   */
+  fetchBackendConfig() {
+    const backendUrl = this.globalData.apiConfig.backendUrl
+
+    wx.request({
+      url: `${backendUrl}/api/models`,
+      method: 'GET',
+      success: (res) => {
+        if (res.statusCode === 200 && res.data) {
+          // Store BigModel key count for multi-key rotation info
+          if (res.data.bigmodelKeyCount !== undefined) {
+            this.globalData.bigModelKeyCount = res.data.bigmodelKeyCount
+            console.log('[App] Backend loaded:', res.data.bigmodelKeyCount, 'BigModel key(s)')
+          }
+        }
+      },
+      fail: (err) => {
+        console.error('[App] Failed to fetch backend config:', err)
+        // Continue with defaults - not critical error
+      }
+    })
   }
 })

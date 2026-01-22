@@ -1,6 +1,6 @@
 Page({
   data: {
-    selectedModel: 'deepseek-chat',
+    selectedModel: 'default',
     language: 'en'
   },
 
@@ -13,31 +13,41 @@ Page({
 
     const app = getApp()
 
+    // Map internal model to simplified UI options
     const savedModel = wx.getStorageSync('selectedModel')
+    // If user has 'deepseek-reasoner' stored, map to 'high-quality'
+    // Otherwise map to 'default' (covers 'glm-4.7', 'deepseek-chat', etc.)
+    const uiModel = savedModel === 'deepseek-reasoner' ? 'high-quality' : 'default'
+
     const savedLanguage = app.globalData.language || 'en'
 
     this.setData({
-      selectedModel: savedModel || 'deepseek-chat',
+      selectedModel: uiModel,
       language: savedLanguage
     })
   },
 
   onModelChange(e) {
-    const model = e.detail.value
-    this.setData({ selectedModel: model })
+    const uiModel = e.detail.value
+    this.setData({ selectedModel: uiModel })
 
     const app = getApp()
-    app.globalData.selectedModel = model
-    wx.setStorageSync('selectedModel', model)
+
+    // Map UI option back to internal model
+    // 'default' → smart mode (will be handled by generateCard logic)
+    // 'high-quality' → deepseek-reasoner for all sections
+    const internalModel = uiModel === 'high-quality' ? 'deepseek-reasoner' : 'default'
+
+    app.globalData.selectedModel = internalModel
+    wx.setStorageSync('selectedModel', internalModel)
 
     const modelNames = {
-      'glm-4.7': { en: 'Quality Search', zh: '质量搜索' },
-      'deepseek-chat': { en: 'Fast Search', zh: '快速搜索' },
-      'deepseek-reasoner': { en: 'Deep Search', zh: '深度搜索' }
+      'default': { en: 'Default Search', zh: '默认搜索' },
+      'high-quality': { en: 'High Quality Search', zh: '高质量搜索' }
     }
 
     wx.showToast({
-      title: this.data.language === 'en' ? `Switched to ${modelNames[model].en}` : `已切换到${modelNames[model].zh}`,
+      title: this.data.language === 'en' ? `Switched to ${modelNames[uiModel].en}` : `已切换到${modelNames[uiModel].zh}`,
       icon: 'success',
       duration: 2000
     })

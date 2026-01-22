@@ -719,7 +719,7 @@ Page({
         loadingDetail: isEn ? `Retrieving details...` : `获取详细信息...`
       })
 
-      // Step 1: Expand all 5 sections concurrently for speed
+      // Step 1: Expand all 5 sections concurrently with model distribution
       logger.log('[generateCard] Starting concurrent expansion of', outline.sections.length, 'sections')
 
       const expansionPromises = outline.sections.map(async (section, index) => {
@@ -727,8 +727,28 @@ Page({
 
         logger.log(`[generateCard] Expanding section ${index + 1}/${outline.sections.length}:`, section.title)
 
+        // Assign model based on user selection
+        let sectionModel
+        if (selectedModel === 'deepseek-reasoner') {
+          // High quality mode: Use DeepSeek-Reasoner for all sections
+          sectionModel = 'deepseek-reasoner'
+          logger.log(`[generateCard] Section ${index + 1} using: DeepSeek-Reasoner (high quality mode)`)
+        } else {
+          // Default mode: Smart distribution for optimal performance
+          if (index === 0) {
+            // First section: DeepSeek-Chat (fast, starts the article)
+            sectionModel = 'deepseek-chat'
+            logger.log(`[generateCard] Section ${index + 1} using: DeepSeek-Chat (default mode)`)
+          } else {
+            // Remaining sections: GLM-4.7 (one per available key)
+            // Backend will rotate through multiple keys automatically
+            sectionModel = 'glm-4.7'
+            logger.log(`[generateCard] Section ${index + 1} using: GLM-4.7 (default mode, will use key ${index}/${getApp().globalData.bigModelKeyCount || 1} in backend)`)
+          }
+        }
+
         try {
-          const expandedSection = await expandSection(section, apiKey, self.data.language, selectedModel, apiKeys)
+          const expandedSection = await expandSection(section, apiKey, self.data.language, sectionModel, apiKeys)
           logger.log(`[generateCard] Section ${index + 1} expanded, subParagraphs count:`, expandedSection.subParagraphs?.length || 0)
           return { index, expandedSection }
         } catch (error) {

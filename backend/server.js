@@ -119,7 +119,7 @@ app.get('/api/health', (req, res) => {
 app.get('/api/models', (req, res) => {
   const models = []
 
-  if (API_KEYS.BIGMODEL) {
+  if (BIGMODEL_KEYS.length > 0) {
     models.push({
       id: 'glm-4.7',
       name: 'GLM-4.7',
@@ -155,7 +155,11 @@ app.get('/api/models', (req, res) => {
     })
   }
 
-  res.json({ models })
+  // Include BigModel key count for load balancing info
+  res.json({
+    models,
+    bigmodelKeyCount: BIGMODEL_KEYS.length
+  })
 })
 
 // WeChat Mini Program login endpoint
