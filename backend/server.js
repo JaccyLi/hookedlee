@@ -64,7 +64,8 @@ const BIGMODEL_KEYS = process.env.BIGMODEL_API_KEY
 const API_KEYS = {
   BIGMODEL: BIGMODEL_KEYS.length > 0 ? BIGMODEL_KEYS[0] : null, // Primary key for compatibility
   BIGMODEL_ALL: BIGMODEL_KEYS, // Array of all keys
-  DEEPSEEK: process.env.DEEPSEEK_API_KEY
+  DEEPSEEK: process.env.DEEPSEEK_API_KEY,
+  DASHSCOPE: process.env.DASHSCOPE_API_KEY // For Qwen image models
 }
 
 // Key rotation counter for load balancing
@@ -98,7 +99,12 @@ if (BIGMODEL_KEYS.length === 0 && !API_KEYS.DEEPSEEK) {
 }
 
 console.log(`✓ Loaded ${BIGMODEL_KEYS.length} BigModel API key(s)`)
-console.log(`✓ DeepSeek API: ${API_KEYS.DEEPSEEK ? 'Configured' : 'Not configured'}`)
+if (API_KEYS.DEEPSEEK) {
+  console.log('✓ Loaded DeepSeek API key')
+}
+if (API_KEYS.DASHSCOPE) {
+  console.log('✓ Loaded DashScope API key (for Qwen image models)')
+}
 
 // ========== ROUTES ==========
 
@@ -156,10 +162,36 @@ app.get('/api/models', (req, res) => {
     })
   }
 
+  // Qwen image models
+  if (API_KEYS.DASHSCOPE) {
+    models.push({
+      id: 'qwen-image-max',
+      name: 'Qwen-Image-Max',
+      provider: 'dashscope',
+      type: 'image',
+      available: true
+    })
+    models.push({
+      id: 'qwen-image-plus-2026-01-09',
+      name: 'Qwen-Image-Plus-2026-01-09',
+      provider: 'dashscope',
+      type: 'image',
+      available: true
+    })
+    models.push({
+      id: 'qwen-image-plus',
+      name: 'Qwen-Image-Plus',
+      provider: 'dashscope',
+      type: 'image',
+      available: true
+    })
+  }
+
   // Include BigModel key count for load balancing info
   res.json({
     models,
-    bigmodelKeyCount: BIGMODEL_KEYS.length
+    bigmodelKeyCount: BIGMODEL_KEYS.length,
+    dashscopeConfigured: !!API_KEYS.DASHSCOPE
   })
 })
 
@@ -320,45 +352,100 @@ app.post('/api/proxy/deepseek', authenticate, async (req, res) => {
   }
 })
 
-// Proxy endpoint for image generation (BigModel CogView-3-Flash - Free)
+// Proxy endpoint for image generation (supports multiple providers)
 app.post('/api/proxy/image', authenticate, async (req, res) => {
   try {
-    const { prompt, size, isHero } = req.body
+    const { prompt, size, isHero, imageModel = 'cogview-3-flash' } = req.body
 
-    // Get next API key using round-robin
-    const apiKey = getNextBigModelKey()
-    if (!apiKey) {
-      return res.status(400).json({
-        error: 'BigModel API key not configured'
-      })
-    }
+    console.log('[Image Gen]', isHero ? 'Hero image' : 'Section image', 'model:', imageModel)
 
-    const keyIndex = bigmodelKeyIndex === 0 ? BIGMODEL_KEYS.length : bigmodelKeyIndex
+    // Route to appropriate image provider
+    if (imageModel.startsWith('qwen-')) {
+      // Qwen Image Generation (DashScope)
+      if (!API_KEYS.DASHSCOPE) {
+        return res.status(400).json({
+          error: 'DashScope API key not configured'
+        })
+      }
 
-    // Use CogView-3-Flash for all images (free model)
-    const model = 'cogview-3-flash'
+      // Map size to Qwen format (e.g., "1024x1024" -> "1024*1024")
+      const qwenSize = (size || '1024x1024').replace('x', '*')
 
-    console.log('[Image Gen]', isHero ? 'Hero image' : 'Section image', 'model:', model, `key ${keyIndex}/${BIGMODEL_KEYS.length}`)
-
-    const response = await retryApiCall(async () => {
-      return await axios.post(
-        'https://open.bigmodel.cn/api/paas/v4/images/generations',
-        {
-          model: model,
-          prompt: prompt,
-          size: size || '1024x1024'
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
+      const response = await retryApiCall(async () => {
+        return await axios.post(
+          'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
+          {
+            model: imageModel,
+            input: {
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    { text: prompt }
+                  ]
+                }
+              ]
+            },
+            parameters: {
+              size: qwenSize,
+              prompt_extend: false, // Don't extend prompt, use as-is
+              watermark: false,
+              negative_prompt: ''
+            }
           },
-          timeout: 60000
-        }
-      )
-    }, 3) // Max 3 retries
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${API_KEYS.DASHSCOPE}`
+            },
+            timeout: 60000
+          }
+        )
+      }, 3)
 
-    res.json(response.data)
+      // Transform Qwen response to match BigModel format
+      // Qwen: { output: { choices: [{ message: { content: [{ image: url }] } }] } }
+      // BigModel: { data: [{ url: url }] }
+      const imageUrl = response.data?.output?.choices?.[0]?.message?.content?.[0]?.image
+      if (imageUrl) {
+        return res.json({
+          data: [{ url: imageUrl }]
+        })
+      } else {
+        throw new Error('Invalid Qwen image response format')
+      }
+    } else {
+      // BigModel CogView Generation
+      const apiKey = getNextBigModelKey()
+      if (!apiKey) {
+        return res.status(400).json({
+          error: 'BigModel API key not configured'
+        })
+      }
+
+      const keyIndex = bigmodelKeyIndex === 0 ? BIGMODEL_KEYS.length : bigmodelKeyIndex
+      console.log(`[Image Gen] Using BigModel CogView, key ${keyIndex}/${BIGMODEL_KEYS.length}`)
+
+      const response = await retryApiCall(async () => {
+        return await axios.post(
+          'https://open.bigmodel.cn/api/paas/v4/images/generations',
+          {
+            model: imageModel,
+            prompt: prompt,
+            size: size || '1024x1024'
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            timeout: 60000
+          }
+        )
+      }, 3)
+
+      res.json(response.data)
+    }
   } catch (error) {
     console.error('[Image Generation Error]:', error.message)
     console.error('[Image Generation Error Details]:', {
@@ -366,7 +453,6 @@ app.post('/api/proxy/image', authenticate, async (req, res) => {
       statusText: error.response?.statusText,
       data: error.response?.data
     })
-    // Return error response but don't crash - frontend will handle gracefully
     res.status(500).json({
       error: 'Failed to generate image',
       details: error.response?.data || error.message
