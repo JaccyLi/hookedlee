@@ -727,10 +727,8 @@ Page({
         loadingDetail: isEn ? `Searching sections (parallel)...` : `正在搜索章节（并行）...`
       })
 
-      // Step 1: Expand sections with hybrid parallel/sequential approach
-      // Section 0: Sequential (DeepSeek-Reasoner - highest quality)
-      // Sections 1-2: Parallel (DeepSeek-Chat + GLM-4.7)
-      logger.log('[generateCard] Starting hybrid expansion of', outline.sections.length, 'sections')
+      // Step 1: Expand all 3 sections in parallel for maximum speed
+      logger.log('[generateCard] Starting full parallel expansion of', outline.sections.length, 'sections')
 
       // Validate outline sections
       if (!outline.sections || !Array.isArray(outline.sections) || outline.sections.length === 0) {
@@ -750,53 +748,29 @@ Page({
         streamingActive: true
       })
 
-      // First, expand section 0 sequentially (DeepSeek-Reasoner for highest quality)
-      const section0Model = 'deepseek-reasoner'
-      logger.log(`[generateCard] Section 1 using: ${section0Model} (sequential, highest quality)`)
-
-      this.setData({
-        loadingDetail: isEn ? `Expanding section 1 (highest quality)...` : `正在扩展第 1 章节（最高质量）...`
-      })
-
-      let section0Expanded = null
-      try {
-        logger.log(`[generateCard] Calling expandSection for section 1, model: ${section0Model}`)
-        section0Expanded = await expandSection(outline.sections[0], apiKey, self.data.language, section0Model, apiKeys)
-        logger.log('[generateCard] Section 1 expanded successfully')
-
-        const currentStreaming = self.data.streamingSections
-        currentStreaming[0].model = section0Model
-        currentStreaming[0].completed = true
-        self.setData({
-          streamingSections: currentStreaming,
-          loadingDetail: isEn ? 'Section 1 completed, starting sections 2-3 in parallel...' : '第 1 章完成，正在并行扩展第 2-3 章节...'
-        })
-      } catch (error) {
-        logger.error('[generateCard] Section 1 expansion failed:', error)
-        section0Expanded = {
-          intro: outline.sections[0].summary || outline.sections[0].title,
-          subParagraphs: [],
-          imageUrl: ''
-        }
-      }
-
-      // Then, expand sections 1-2 in parallel (DeepSeek-Chat + GLM-4.7-Flash)
-      logger.log('[generateCard] Starting parallel expansion for sections 2-3')
-
-      const parallelExpansionPromises = outline.sections.slice(1).map((section, sliceIndex) => {
-        const originalIndex = sliceIndex + 1 // Convert back to original index
+      // Assign models and create expansion promises (all parallel)
+      const expansionPromises = outline.sections.map((section, index) => {
         return new Promise(async (resolve) => {
-          // Section 2 (index 1): DeepSeek-Chat
-          // Section 3 (index 2): GLM-4.7-Flash (fast, avoids timeout)
-          const sectionModel = originalIndex === 1 ? 'deepseek-chat' : 'glm-4.7-flash'
+          // Section 1: DeepSeek-Reasoner (highest quality)
+          // Section 2: DeepSeek-Chat (fast and good quality)
+          // Section 3: GLM-4.7-Flash (fast)
+          let sectionModel
+          if (index === 0) {
+            sectionModel = 'deepseek-reasoner'
+          } else if (index === 1) {
+            sectionModel = 'deepseek-chat'
+          } else {
+            sectionModel = 'glm-4.7-flash'
+          }
 
-          logger.log(`[generateCard] Section ${originalIndex + 1} using: ${sectionModel} (parallel)`)
+          logger.log(`[generateCard] Section ${index + 1} using: ${sectionModel} (parallel)`)
 
+          // Update progress UI
           const updateProgress = (detail, completed = false) => {
             const currentStreaming = self.data.streamingSections
-            if (currentStreaming && currentStreaming[originalIndex]) {
-              currentStreaming[originalIndex].model = sectionModel
-              currentStreaming[originalIndex].completed = completed
+            if (currentStreaming && currentStreaming[index]) {
+              currentStreaming[index].model = sectionModel
+              currentStreaming[index].completed = completed
               self.setData({
                 loadingDetail: detail,
                 streamingSections: currentStreaming
@@ -804,17 +778,19 @@ Page({
             }
           }
 
-          updateProgress(isEn ? `Searching section ${originalIndex + 1}...` : `正在查找第 ${originalIndex + 1} 章节...`)
+          updateProgress(isEn ? `Searching section ${index + 1}...` : `正在查找第 ${index + 1} 章节...`)
 
           try {
-            logger.log(`[generateCard] Calling expandSection for section ${originalIndex + 1}, model: ${sectionModel}`)
-            const expandedSection = await expandSection(section, apiKey, self.data.language, sectionModel, apiKeys)
-            logger.log(`[generateCard] Section ${originalIndex + 1} expanded successfully`)
+            logger.log(`[generateCard] Calling expandSection for section ${index + 1}, model: ${sectionModel}`)
 
-            updateProgress(isEn ? `Completed section ${originalIndex + 1}` : `完成第 ${originalIndex + 1} 章节`, true)
-            resolve({ index: originalIndex, expandedSection })
+            // Use regular HTTP expansion (reliable)
+            const expandedSection = await expandSection(section, apiKey, self.data.language, sectionModel, apiKeys)
+            logger.log(`[generateCard] Section ${index + 1} expanded successfully`)
+
+            updateProgress(isEn ? `Completed section ${index + 1}` : `完成第 ${index + 1} 章节`, true)
+            resolve({ index, expandedSection })
           } catch (error) {
-            logger.error(`[generateCard] Section ${originalIndex + 1} expansion failed:`, error)
+            logger.error(`[generateCard] Section ${index + 1} expansion failed:`, error)
             logger.error(`[generateCard] Error details:`, {
               message: error.message,
               stack: error.stack,
@@ -822,9 +798,9 @@ Page({
               model: sectionModel
             })
             // Return fallback section
-            updateProgress(isEn ? `Section ${originalIndex + 1} failed` : `第 ${originalIndex + 1} 章节失败`, true)
+            updateProgress(isEn ? `Section ${index + 1} failed` : `第 ${index + 1} 章节失败`, true)
             resolve({
-              index: originalIndex,
+              index,
               expandedSection: {
                 intro: section.summary || section.title,
                 subParagraphs: [],
@@ -835,17 +811,10 @@ Page({
         })
       })
 
-      // Wait for parallel sections to complete
-      const parallelExpandedSections = await Promise.all(parallelExpansionPromises)
-      logger.log('[generateCard] All parallel sections completed')
-
-      // Combine results
-      const expandedSections = [
-        { index: 0, expandedSection: section0Expanded },
-        ...parallelExpandedSections
-      ]
-
-      logger.log('[generateCard] All sections expanded (sequential section 1 + parallel sections 2-3)')
+      // Wait for all sections to complete in parallel
+      logger.log('[generateCard] Waiting for all sections to complete...')
+      const expandedSections = await Promise.all(expansionPromises)
+      logger.log('[generateCard] All 3 sections expanded in parallel')
       logger.log('[generateCard] Expanded sections count:', expandedSections.length)
 
       this.setData({
