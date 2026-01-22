@@ -991,11 +991,22 @@ Page({
   },
 
   // Loading flashcard rotation functions
-  startLoadingFlashcardRotation() {
+  async startLoadingFlashcardRotation() {
     logger.log('[Flashcard Rotation] Starting')
 
-    // Get random flashcards from all categories
-    const allFlashcards = this.data.flashcards || []
+    // Load flashcards if not already loaded
+    let allFlashcards = this.data.flashcards || []
+    if (allFlashcards.length === 0) {
+      logger.log('[Flashcard Rotation] Loading flashcards...')
+      try {
+        allFlashcards = await this.loadAllFlashcards()
+        logger.log('[Flashcard Rotation] Loaded', allFlashcards.length, 'flashcards')
+      } catch (error) {
+        logger.error('[Flashcard Rotation] Error loading flashcards:', error)
+        return
+      }
+    }
+
     if (allFlashcards.length === 0) {
       logger.warn('[Flashcard Rotation] No flashcards available')
       return
@@ -1003,6 +1014,28 @@ Page({
 
     // Start rotation
     this.showNextLoadingFlashcard()
+  },
+
+  async loadAllFlashcards() {
+    // Load all flashcards from all categories
+    const categories = ['casting', 'fly_casting', 'distance_casting', 'slackline_presentation']
+    const allCards = []
+
+    for (const category of categories) {
+      try {
+        const module = require(`./flashcards/${category}_flashcards.js`)
+        allCards.push(...module.flashcards)
+      } catch (error) {
+        logger.warn(`[loadAllFlashcards] Failed to load ${category}:`, error)
+      }
+    }
+
+    // Store flashcards
+    this.setData({
+      flashcards: allCards
+    })
+
+    return allCards
   },
 
   stopLoadingFlashcardRotation() {
@@ -1027,7 +1060,10 @@ Page({
     }
 
     const allFlashcards = this.data.flashcards || []
+    logger.log('[Flashcard Rotation] Available flashcards:', allFlashcards.length)
+
     if (allFlashcards.length === 0) {
+      logger.warn('[Flashcard Rotation] No flashcards to show')
       return
     }
 
@@ -1035,7 +1071,7 @@ Page({
     const randomIndex = Math.floor(Math.random() * allFlashcards.length)
     const flashcard = allFlashcards[randomIndex]
 
-    logger.log('[Flashcard Rotation] Showing flashcard:', flashcard.category)
+    logger.log('[Flashcard Rotation] Showing flashcard:', flashcard.category, 'Q:', flashcard.question)
 
     // Set the next flashcard and trigger cross-fade
     this.setData({
