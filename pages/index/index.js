@@ -751,17 +751,8 @@ Page({
       // Assign models and create expansion promises (all parallel)
       const expansionPromises = outline.sections.map((section, index) => {
         return new Promise(async (resolve) => {
-          // Section 1: DeepSeek-Chat (fast and good quality)
-          // Section 2: DeepSeek-Chat (fast and good quality)
-          // Section 3: GLM-4.7 (standard quality, not flash)
-          let sectionModel
-          if (index === 0) {
-            sectionModel = 'deepseek-chat'
-          } else if (index === 1) {
-            sectionModel = 'deepseek-chat'
-          } else {
-            sectionModel = 'glm-4.7'
-          }
+          // All sections: DeepSeek-Chat (no rate limit, parallel processing)
+          const sectionModel = 'deepseek-chat'
 
           logger.log(`[generateCard] Section ${index + 1} using: ${sectionModel} (parallel)`)
 
