@@ -680,13 +680,18 @@ Page({
     }
 
     try {
-      const selectedModel = app.globalData.selectedModel || 'deepseek-chat'
+      const selectedModel = app.globalData.selectedModel || 'default'
       const apiKeys = {
         glmApiKey: app.globalData.bigModelApiKey,
         deepseekApiKey: app.globalData.deepseekApiKey
       }
 
-      logger.log('[Model] Using:', selectedModel)
+      // Determine outline model based on mode
+      // 'default' → All DeepSeek-Chat
+      // 'high-quality' → DeepSeek-Reasoner for outline, DeepSeek-Chat for sections
+      const outlineModel = selectedModel === 'high-quality' ? 'deepseek-reasoner' : 'deepseek-chat'
+
+      logger.log('[Model] Mode:', selectedModel, '→ Outline model:', outlineModel, 'Sections: deepseek-chat')
 
       this.setData({
         loadingStep: isEn ? 'Finding results...' : '查找结果中...',
@@ -708,7 +713,7 @@ Page({
             loadingDetail: progress.detail
           })
         },
-        selectedModel,
+        outlineModel,
         apiKeys
       )
 

@@ -15,9 +15,9 @@ Page({
 
     // Map internal model to simplified UI options
     const savedModel = wx.getStorageSync('selectedModel')
-    // If user has 'deepseek-reasoner' stored, map to 'high-quality'
-    // Otherwise map to 'default' (covers 'glm-4.7', 'deepseek-chat', etc.)
-    const uiModel = savedModel === 'deepseek-reasoner' ? 'high-quality' : 'default'
+    // 'high-quality' → High Quality mode (Reasoner outline, Chat sections)
+    // 'default' or anything else → Default mode (All Chat)
+    const uiModel = savedModel === 'high-quality' ? 'high-quality' : 'default'
 
     const savedLanguage = app.globalData.language || 'en'
 
@@ -34,9 +34,9 @@ Page({
     const app = getApp()
 
     // Map UI option back to internal model
-    // 'default' → smart mode (will be handled by generateCard logic)
-    // 'high-quality' → deepseek-reasoner for all sections
-    const internalModel = uiModel === 'high-quality' ? 'deepseek-reasoner' : 'default'
+    // 'default' → all DeepSeek-Chat
+    // 'high-quality' → Reasoner for outline, Chat for sections
+    const internalModel = uiModel // Store 'default' or 'high-quality' directly
 
     app.globalData.selectedModel = internalModel
     wx.setStorageSync('selectedModel', internalModel)

@@ -25,7 +25,7 @@
 
     <!-- Search Engine Options -->
     <radio-group class="model-options" bindchange="onModelChange">
-      <!-- Default Search (Smart Mode) -->
+      <!-- Default Search (All DeepSeek-Chat) -->
       <label class="model-card {{selectedModel === 'default' ? 'active' : ''}}">
         <radio value="default" checked="{{selectedModel === 'default'}}" class="hidden-radio" />
         <view class="model-card-content">
@@ -36,9 +36,9 @@
             <text class="model-name">{{language === 'en' ? 'Default Search' : '默认搜索'}}</text>
             <text class="model-tags">
               <text class="tag tag-quality tag-recommended">{{language === 'en' ? 'Great Quality' : '质量好'}}</text>
-              <text class="tag tag-speed tag-recommended">{{language === 'en' ? 'Fast' : '快速'}}</text>
+              <text class="tag tag-speed tag-recommended">{{language === 'en' ? 'Fastest' : '最快'}}</text>
             </text>
-            <text class="model-desc">{{language === 'en' ? '✅ Fast & balanced results • Best for daily use • Smart multi-engine technology' : '✅ 快速且平衡的结果 • 适合日常使用 • 智能多引擎技术'}}</text>
+            <text class="model-desc">{{language === 'en' ? '✅ All DeepSeek-Chat • Parallel processing • Best for daily use' : '✅ 全部使用DeepSeek-Chat • 并行处理 • 适合日常使用'}}</text>
           </view>
           <view class="model-indicator {{selectedModel === 'default' ? 'active' : ''}}">
             <view class="indicator-dot"></view>
@@ -46,7 +46,7 @@
         </view>
       </label>
 
-      <!-- High Quality Search (DeepSeek-Reasoner for all) -->
+      <!-- High Quality Search (Reasoner for outline, Chat for sections) -->
       <label class="model-card {{selectedModel === 'high-quality' ? 'active' : ''}}">
         <radio value="high-quality" checked="{{selectedModel === 'high-quality'}}" class="hidden-radio" />
         <view class="model-card-content">
@@ -56,10 +56,10 @@
           <view class="model-details">
             <text class="model-name">{{language === 'en' ? 'High Quality Search' : '高质量搜索'}}</text>
             <text class="model-tags">
-              <text class="tag tag-quality tag-best">{{language === 'en' ? 'Best Quality' : '最佳质量'}}</text>
-              <text class="tag tag-speed tag-slowest">{{language === 'en' ? 'Slowest' : '最慢'}}</text>
+              <text class="tag tag-quality tag-best">{{language === 'en' ? 'Best Framework' : '最佳框架'}}</text>
+              <text class="tag tag-speed tag-slower">{{language === 'en' ? 'Slower' : '较慢'}}</text>
             </text>
-            <text class="model-desc">{{language === 'en' ? '✅ In-depth analysis with comprehensive results • Generates each section carefully' : '✅ 深入分析，结果全面 • 精心生成每个章节'}}</text>
+            <text class="model-desc">{{language === 'en' ? '✅ DeepSeek-Reasoner outline • DeepSeek-Chat sections • Smart hybrid mode' : '✅ DeepSeek-Reasoner大纲 • DeepSeek-Chat章节 • 智能混合模式'}}</text>
           </view>
           <view class="model-indicator {{selectedModel === 'high-quality' ? 'active' : ''}}">
             <view class="indicator-dot"></view>
