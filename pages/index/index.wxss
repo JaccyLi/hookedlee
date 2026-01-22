@@ -589,17 +589,10 @@ page {
   border-radius: 24rpx;
   padding: 32rpx;
   box-shadow: 8rpx 8rpx 0 #000000;
-  transition: opacity 0.5s ease-in-out;
 }
 
 .loading-flashcard.fade-in {
-  opacity: 1;
   animation: fadeInUp 0.5s ease;
-}
-
-.loading-flashcard.fade-out {
-  opacity: 0;
-  animation: fadeOutDown 0.5s ease;
 }
 
 @keyframes fadeInUp {
@@ -610,17 +603,6 @@ page {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes fadeOutDown {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(20rpx);
   }
 }
 

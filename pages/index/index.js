@@ -115,8 +115,9 @@ Page({
     streamingSections: [], // Array of section progress (title, completed, model)
     streamingActive: false,
     // Loading flashcard rotation
-    loadingFlashcard: null,
-    loadingFlashcardVisible: false,
+    currentFlashcard: null,
+    nextFlashcard: null,
+    showNextFlashcard: false,
     loadingFlashcardTimer: null
   },
 
@@ -1011,8 +1012,9 @@ Page({
       clearTimeout(this.data.loadingFlashcardTimer)
       this.setData({
         loadingFlashcardTimer: null,
-        loadingFlashcard: null,
-        loadingFlashcardVisible: false
+        currentFlashcard: null,
+        nextFlashcard: null,
+        showNextFlashcard: false
       })
     }
   },
@@ -1035,28 +1037,36 @@ Page({
 
     logger.log('[Flashcard Rotation] Showing flashcard:', flashcard.category)
 
-    // Fade in the new flashcard
+    // Set the next flashcard and trigger cross-fade
     this.setData({
-      loadingFlashcardVisible: true,
-      loadingFlashcard: flashcard
+      nextFlashcard: flashcard,
+      showNextFlashcard: true
     })
 
-    // Set timer to fade out and show next one after 10 seconds
-    const timer = setTimeout(() => {
-      // Fade out current flashcard
+    // After cross-fade completes (500ms), swap the cards
+    setTimeout(() => {
+      // Stop if not loading anymore
+      if (!this.data.loading) {
+        this.stopLoadingFlashcardRotation()
+        return
+      }
+
+      // Move next to current and hide next
       this.setData({
-        loadingFlashcardVisible: false
+        currentFlashcard: this.data.nextFlashcard,
+        nextFlashcard: null,
+        showNextFlashcard: false
       })
 
-      // Wait for fade out animation (500ms), then show next
-      setTimeout(() => {
+      // Set timer for next flashcard after 10 seconds
+      const timer = setTimeout(() => {
         this.showNextLoadingFlashcard()
-      }, 500)
-    }, 10000)
+      }, 10000)
 
-    this.setData({
-      loadingFlashcardTimer: timer
-    })
+      this.setData({
+        loadingFlashcardTimer: timer
+      })
+    }, 500)
   },
 
   copyArticle() {
