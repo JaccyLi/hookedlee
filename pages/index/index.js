@@ -719,41 +719,34 @@ Page({
         loadingDetail: isEn ? `Retrieving details...` : `获取详细信息...`
       })
 
-      // Step 1: Expand sections sequentially with delays to avoid rate limiting
-      const expandedSections = []
-      for (let index = 0; index < outline.sections.length; index++) {
-        if (self.data.shouldCancel) return
+      // Step 1: Expand all 5 sections concurrently for speed
+      logger.log('[generateCard] Starting concurrent expansion of', outline.sections.length, 'sections')
 
-        const section = outline.sections[index]
+      const expansionPromises = outline.sections.map(async (section, index) => {
+        if (self.data.shouldCancel) return null
+
         logger.log(`[generateCard] Expanding section ${index + 1}/${outline.sections.length}:`, section.title)
-
-        self.setData({
-          loadingDetail: isEn ? `Section ${index + 1}/${outline.sections.length}...` : `第 ${index + 1}/${outline.sections.length} 节...`
-        })
 
         try {
           const expandedSection = await expandSection(section, apiKey, self.data.language, selectedModel, apiKeys)
           logger.log(`[generateCard] Section ${index + 1} expanded, subParagraphs count:`, expandedSection.subParagraphs?.length || 0)
-          expandedSections.push({ index, expandedSection })
+          return { index, expandedSection }
         } catch (error) {
           logger.error(`[generateCard] Section ${index + 1} expansion failed:`, error)
-          // Add failed section with empty content
-          expandedSections.push({
+          // Return fallback section with summary only
+          return {
             index,
             expandedSection: {
               intro: section.summary,
               subParagraphs: [],
               imageUrl: ''
             }
-          })
+          }
         }
+      })
 
-        // Add delay between requests to avoid rate limiting (except for last section)
-        if (index < outline.sections.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 5000)) // 5 second delay to avoid 429 errors
-        }
-      }
-      logger.log('[generateCard] All sections expanded')
+      const expandedSections = await Promise.all(expansionPromises)
+      logger.log('[generateCard] All sections expanded concurrently')
 
       // Step 2: Generate all images in parallel
       this.setData({
