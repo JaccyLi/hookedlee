@@ -156,8 +156,8 @@
         </view>
       </view>
 
-      <!-- Loading Flashcard Display -->
-      <view class="loading-flashcard-container" wx:if="{{currentFlashcard || nextFlashcard}}">
+      <!-- Loading Flashcard Display (only when not streaming) -->
+      <view class="loading-flashcard-container" wx:if="{{(currentFlashcard || nextFlashcard) && !streamingActive}}">
         <!-- Current Flashcard (fades out) -->
         <view class="loading-flashcard" wx:if="{{currentFlashcard && !showNextFlashcard}}">
           <view class="loading-flashcard-category" style="background: {{currentFlashcard.color}}; color: #fff;">
