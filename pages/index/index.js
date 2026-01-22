@@ -753,14 +753,14 @@ Page({
         return new Promise(async (resolve) => {
           // Section 1: DeepSeek-Reasoner (highest quality)
           // Section 2: DeepSeek-Chat (fast and good quality)
-          // Section 3: GLM-4.7-Flash (fast)
+          // Section 3: GLM-4.7 (standard quality, not flash)
           let sectionModel
           if (index === 0) {
             sectionModel = 'deepseek-reasoner'
           } else if (index === 1) {
             sectionModel = 'deepseek-chat'
           } else {
-            sectionModel = 'glm-4.7-flash'
+            sectionModel = 'glm-4.7'
           }
 
           logger.log(`[generateCard] Section ${index + 1} using: ${sectionModel} (parallel)`)
