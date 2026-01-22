@@ -530,18 +530,16 @@ CRITICAL REQUIREMENTS:
 - Content must be practical, actionable, and highly informative
 - Include specific techniques, tips, or examples
 - Use clear, professional language
-- CRITICAL: Each paragraph MUST start with a number prefix (1., 2., 3.)
-- CRITICAL: You must return exactly 3 sub-paragraphs, no more, no less
 
-Output ONLY valid JSON in this exact format:
-{
-  "intro": "Brief introduction text...",
-  "subParagraphs": [
-    "1. First expanded paragraph (from sentence 1) - must be 100+ words...",
-    "2. Second expanded paragraph (from sentence 2) - must be 100+ words...",
-    "3. Third expanded paragraph (from sentence 3) - must be 100+ words..."
-  ]
-}
+Output ONLY plain text in this exact format (do not use JSON code blocks):
+
+INTRO: [Your brief introduction here]
+
+PARAGRAPH 1: [Your first expanded paragraph - must be 100+ words]
+
+PARAGRAPH 2: [Your second expanded paragraph - must be 100+ words]
+
+PARAGRAPH 3: [Your third expanded paragraph - must be 100+ words]
 
 Remember: ALL 3 paragraphs must be expanded with substantial content. Do not truncate or skip any paragraph.`
     : `你是一位资深的飞钓专家。将以下章节句子扩展为完整的文章章节。
@@ -562,18 +560,16 @@ ${sentencesText}
 - 内容必须实用、可操作且信息丰富
 - 包含具体技巧、提示或示例
 - 使用清晰、专业的语言
-- 关键：每个段落必须以数字前缀开头（1.、2.、3.）
-- 关键：你必须返回恰好3个子段落，不多不少
 
-只输出以下格式的有效JSON：
-{
-  "intro": "简短介绍文本...",
-  "subParagraphs": [
-    "1. 第一个扩展段落（来自句子1）- 必须100字以上...",
-    "2. 第二个扩展段落（来自句子2）- 必须100字以上...",
-    "3. 第三个扩展段落（来自句子3）- 必须100字以上..."
-  ]
-}
+只输出纯文本格式，不要使用JSON代码块：
+
+介绍：[你的简短介绍]
+
+段落1：[你的第一个扩展段落 - 必须100字以上]
+
+段落2：[你的第二个扩展段落 - 必须100字以上]
+
+段落3：[你的第三个扩展段落 - 必须100字以上]
 
 记住：所有3个段落都必须扩展为充实的内容。不要截断或跳过任何段落。`
 
@@ -649,57 +645,70 @@ ${sentencesText}
       }
     }
 
-    // Parse and return content with robust error handling
-    content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim()
+    // Clean up content - remove any markdown code blocks
+    content = content.replace(/^```\w*\s*/, '').replace(/\s*```$/, '').trim()
 
-    let sectionData
-    try {
-      sectionData = JSON.parse(content)
-      logger.log('[expandSection] Parsed sectionData, subParagraphs count:', sectionData.subParagraphs?.length || 0)
-    } catch (parseError) {
-      logger.error('[expandSection] JSON parse failed:', parseError.message)
-      logger.error('[expandSection] Content preview:', content.substring(0, 500))
+    // Parse text response into structured data
+    function parseTextResponse(text) {
+      const isEnglish = language === 'en'
 
-      // Try to fix common JSON issues
-      try {
-        // Attempt to extract JSON from response if it's embedded in text
-        const jsonMatch = content.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          sectionData = JSON.parse(jsonMatch[0])
-          logger.log('[expandSection] Parsed with extracted JSON')
-        } else {
-          throw new Error('No JSON found in response')
+      // Define patterns for English and Chinese
+      const introPattern = isEnglish ? /^INTRO:\s*(.+?)$/im : /^介绍：\s*(.+?)$/im
+      const paragraphPattern = isEnglish ? /^PARAGRAPH\s+(\d+):\s*(.+?)$/im : /^段落(\d+)：\s*(.+?)$/im
+
+      // Extract intro
+      const introMatch = text.match(introPattern)
+      const intro = introMatch ? introMatch[1].trim() : section.title
+
+      // Extract paragraphs
+      const paragraphs = []
+      const paragraphMatches = text.matchAll(paragraphPattern)
+
+      for (const match of paragraphMatches) {
+        const num = parseInt(match[1])
+        const content = match[2].trim()
+        paragraphs[num - 1] = `${num}. ${content}` // Add number prefix
+      }
+
+      // Fill in missing paragraphs if any
+      for (let i = 0; i < 3; i++) {
+        if (!paragraphs[i]) {
+          logger.warn(`[expandSection] Missing paragraph ${i + 1}, using original sentence`)
+          paragraphs[i] = `${i + 1}. ${sentences[i] || ''}`
         }
-      } catch (secondError) {
-        logger.error('[expandSection] Second parse attempt failed:', secondError.message)
+      }
 
-        // Ultimate fallback: generate structure from sentences
-        logger.warn('[expandSection] Using fallback structure from sentences')
-        sectionData = {
-          intro: `${section.title}`,
-          subParagraphs: sentences.map((s, i) => `${i + 1}. ${s}`)
-        }
+      return {
+        intro,
+        subParagraphs: paragraphs.slice(0, 3)
       }
     }
 
-    // Ensure paragraphs are properly numbered and validate quality
-    const validParagraphs = (sectionData.subParagraphs || []).map((para, index) => {
-      const expectedPrefix = `${index + 1}.`
-      if (!para.startsWith(expectedPrefix)) {
-        logger.warn(`[expandSection] Paragraph ${index + 1} missing prefix, adding: ${expectedPrefix}`)
-        return `${expectedPrefix} ${para}`
+    // Parse the text response
+    let sectionData
+    try {
+      sectionData = parseTextResponse(content)
+      logger.log('[expandSection] Parsed text response, subParagraphs count:', sectionData.subParagraphs.length)
+    } catch (parseError) {
+      logger.error('[expandSection] Text parsing failed:', parseError.message)
+      logger.error('[expandSection] Content preview (first 500 chars):', content.substring(0, 500))
+
+      // Ultimate fallback: generate structure from sentences
+      logger.warn('[expandSection] Using fallback structure from sentences - CONTENT WILL NOT BE EXPANDED')
+      sectionData = {
+        intro: section.title,
+        subParagraphs: sentences.map((s, i) => `${i + 1}. ${s}`)
       }
-      return para
-    })
+    }
 
     // Validate paragraph count and quality
-    if (validParagraphs.length < 3) {
-      logger.error(`[expandSection] ERROR: Only ${validParagraphs.length} paragraphs returned, expected 3`)
+    if (sectionData.subParagraphs.length < 3) {
+      logger.error(`[expandSection] ERROR: Only ${sectionData.subParagraphs.length} paragraphs parsed, expected 3`)
       logger.error('[expandSection] This indicates the API did not follow instructions properly')
     }
 
     // Check paragraph quality (word count)
-    validParagraphs.forEach((para, index) => {
+    sectionData.subParagraphs.forEach((para, index) => {
       const wordCount = para.split(/\s+/).length
       if (wordCount < 50) {
         logger.warn(`[expandSection] Paragraph ${index + 1} is too short (${wordCount} words), expected 100+`)
@@ -707,7 +716,7 @@ ${sentencesText}
     })
 
     // Ensure we have exactly 3 paragraphs (use what we got, don't create empty ones)
-    const finalParagraphs = validParagraphs.slice(0, 3)
+    const finalParagraphs = sectionData.subParagraphs.slice(0, 3)
 
     // If we still don't have 3 paragraphs, this is a critical failure
     if (finalParagraphs.length < 3) {
@@ -717,7 +726,7 @@ ${sentencesText}
     }
 
     return {
-      intro: sectionData.intro || sectionData.summary || section.title,
+      intro: sectionData.intro || section.title,
       subParagraphs: finalParagraphs,
       imagePrompt: section.imagePrompt
     }

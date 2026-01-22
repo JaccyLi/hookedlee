@@ -320,7 +320,7 @@ async function expandSection(params) {
     messages: params.messages,
     temperature: params.temperature || 0.8,
     top_p: params.top_p || 0.95,
-    max_tokens: params.max_tokens || 4096,
+    max_tokens: params.max_tokens || 8192, // Increased to match MAX_TOKENS_EXPANSION
     stream: false
   })
 }
