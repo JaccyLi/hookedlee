@@ -55,17 +55,49 @@ app.use('/api/', limiter)
 
 // ========== API KEYS (from environment variables) ==========
 
+// Parse BigModel API keys as array (comma-separated)
+const BIGMODEL_KEYS = process.env.BIGMODEL_API_KEY
+  ? process.env.BIGMODEL_API_KEY.split(',').map(k => k.trim()).filter(k => k.length > 0)
+  : []
+
 const API_KEYS = {
-  BIGMODEL: process.env.BIGMODEL_API_KEY,
+  BIGMODEL: BIGMODEL_KEYS.length > 0 ? BIGMODEL_KEYS[0] : null, // Primary key for compatibility
+  BIGMODEL_ALL: BIGMODEL_KEYS, // Array of all keys
   DEEPSEEK: process.env.DEEPSEEK_API_KEY
 }
 
+// Key rotation counter for load balancing
+let bigmodelKeyIndex = 0
+
+/**
+ * Get next BigModel API key (round-robin)
+ * @returns {string} API key
+ */
+function getNextBigModelKey() {
+  if (BIGMODEL_KEYS.length === 0) return null
+
+  const key = BIGMODEL_KEYS[bigmodelKeyIndex]
+  bigmodelKeyIndex = (bigmodelKeyIndex + 1) % BIGMODEL_KEYS.length
+  return key
+}
+
+/**
+ * Get BigModel API key count
+ * @returns {number} Number of available keys
+ */
+function getBigModelKeyCount() {
+  return BIGMODEL_KEYS.length
+}
+
 // Validate API keys on startup
-if (!API_KEYS.BIGMODEL && !API_KEYS.DEEPSEEK) {
+if (BIGMODEL_KEYS.length === 0 && !API_KEYS.DEEPSEEK) {
   console.error('❌ ERROR: At least one API key must be set in .env file!')
-  console.error('Please set BIGMODEL_API_KEY and/or DEEPSEEK_API_KEY')
+  console.error('Please set BIGMODEL_API_KEY (comma-separated for multiple keys) and/or DEEPSEEK_API_KEY')
   process.exit(1)
 }
+
+console.log(`✓ Loaded ${BIGMODEL_KEYS.length} BigModel API key(s)`)
+console.log(`✓ DeepSeek API: ${API_KEYS.DEEPSEEK ? 'Configured' : 'Not configured'}`)
 
 // ========== ROUTES ==========
 
@@ -191,15 +223,18 @@ async function retryApiCall(apiCall, maxRetries = 3) {
 // Proxy endpoint for GLM (BigModel) chat completions
 app.post('/api/proxy/glm', authenticate, async (req, res) => {
   try {
-    if (!API_KEYS.BIGMODEL) {
+    const { model, messages, temperature, top_p, max_tokens, stream } = req.body
+
+    // Get next API key using round-robin
+    const apiKey = getNextBigModelKey()
+    if (!apiKey) {
       return res.status(400).json({
         error: 'BigModel API key not configured'
       })
     }
 
-    const { model, messages, temperature, top_p, max_tokens, stream } = req.body
-
-    console.log('[GLM Proxy] Request model:', model, 'Temperature:', temperature, 'Messages:', messages?.length)
+    const keyIndex = bigmodelKeyIndex === 0 ? BIGMODEL_KEYS.length : bigmodelKeyIndex
+    console.log(`[GLM Proxy] Request model: ${model}, Using key ${keyIndex}/${BIGMODEL_KEYS.length}, Messages: ${messages?.length}`)
 
     const response = await retryApiCall(async () => {
       return await axios.post(
@@ -215,14 +250,14 @@ app.post('/api/proxy/glm', authenticate, async (req, res) => {
         {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${API_KEYS.BIGMODEL}`
+            'Authorization': `Bearer ${apiKey}`
           },
           timeout: 300000 // 5 minutes
         }
       )
     }, 3) // Max 3 retries
 
-    console.log('[GLM Proxy] Success for model:', model)
+    console.log(`[GLM Proxy] Success for model: ${model}, Key ${keyIndex}/${BIGMODEL_KEYS.length}`)
     res.json(response.data)
   } catch (error) {
     console.error('[GLM Proxy Error]:', error.message)
@@ -283,18 +318,22 @@ app.post('/api/proxy/deepseek', authenticate, async (req, res) => {
 // Proxy endpoint for image generation (BigModel CogView-3-Flash - Free)
 app.post('/api/proxy/image', authenticate, async (req, res) => {
   try {
-    if (!API_KEYS.BIGMODEL) {
+    const { prompt, size, isHero } = req.body
+
+    // Get next API key using round-robin
+    const apiKey = getNextBigModelKey()
+    if (!apiKey) {
       return res.status(400).json({
         error: 'BigModel API key not configured'
       })
     }
 
-    const { prompt, size, isHero } = req.body
+    const keyIndex = bigmodelKeyIndex === 0 ? BIGMODEL_KEYS.length : bigmodelKeyIndex
 
     // Use CogView-3-Flash for all images (free model)
     const model = 'cogview-3-flash'
 
-    console.log('[Image Gen]', isHero ? 'Hero image' : 'Section image', 'using model:', model)
+    console.log('[Image Gen]', isHero ? 'Hero image' : 'Section image', 'model:', model, `key ${keyIndex}/${BIGMODEL_KEYS.length}`)
 
     const response = await axios.post(
       'https://open.bigmodel.cn/api/paas/v4/images/generations',
@@ -306,7 +345,7 @@ app.post('/api/proxy/image', authenticate, async (req, res) => {
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEYS.BIGMODEL}`
+          'Authorization': `Bearer ${apiKey}`
         },
         timeout: 60000
       }
