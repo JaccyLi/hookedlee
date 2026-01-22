@@ -690,7 +690,7 @@ ${sentencesText}
       for (const line of lines) {
         // Check if this line starts a new paragraph
         const colon = isEnglish ? ':' : '：'
-        const paragraphMatch = line.match(new RegExp(`^${paragraphDelimiter}(\\d+)${colon}`))
+        const paragraphMatch = line.match(new RegExp(`^${paragraphDelimiter}\\s*(\\d+)${colon}`))
         if (paragraphMatch) {
           // Save previous paragraph if exists
           if (currentParagraph !== null) {
