@@ -751,12 +751,12 @@ Page({
       // Assign models and create expansion promises (all parallel)
       const expansionPromises = outline.sections.map((section, index) => {
         return new Promise(async (resolve) => {
-          // Section 1: DeepSeek-Reasoner (highest quality)
+          // Section 1: DeepSeek-Chat (fast and good quality)
           // Section 2: DeepSeek-Chat (fast and good quality)
           // Section 3: GLM-4.7 (standard quality, not flash)
           let sectionModel
           if (index === 0) {
-            sectionModel = 'deepseek-reasoner'
+            sectionModel = 'deepseek-chat'
           } else if (index === 1) {
             sectionModel = 'deepseek-chat'
           } else {
