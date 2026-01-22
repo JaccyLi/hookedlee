@@ -719,13 +719,21 @@ Page({
         loadingDetail: isEn ? `Retrieving details...` : `获取详细信息...`
       })
 
-      // Step 1: Expand all 5 sections concurrently with model distribution
-      logger.log('[generateCard] Starting concurrent expansion of', outline.sections.length, 'sections')
+      // Step 1: Expand all 5 sections sequentially (one at a time) to avoid rate limiting
+      logger.log('[generateCard] Starting sequential expansion of', outline.sections.length, 'sections')
 
-      const expansionPromises = outline.sections.map(async (section, index) => {
-        if (self.data.shouldCancel) return null
+      const expandedSections = []
 
+      for (let index = 0; index < outline.sections.length; index++) {
+        if (self.data.shouldCancel) break
+
+        const section = outline.sections[index]
         logger.log(`[generateCard] Expanding section ${index + 1}/${outline.sections.length}:`, section.title)
+
+        // Update progress UI
+        this.setData({
+          loadingDetail: isEn ? `Expanding section ${index + 1}/${outline.sections.length}...` : `正在扩展第 ${index + 1}/${outline.sections.length} 章节...`
+        })
 
         // Assign model based on user selection
         let sectionModel
@@ -743,39 +751,48 @@ Page({
             // Remaining sections: GLM-4.7 (one per available key)
             // Backend will rotate through multiple keys automatically
             sectionModel = 'glm-4.7'
-            logger.log(`[generateCard] Section ${index + 1} using: GLM-4.7 (default mode, will use key ${index}/${getApp().globalData.bigModelKeyCount || 1} in backend)`)
+            logger.log(`[generateCard] Section ${index + 1} using: GLM-4.7 (default mode, will use key ${index + 1}/${getApp().globalData.bigModelKeyCount || 1} in backend)`)
           }
         }
 
         try {
           const expandedSection = await expandSection(section, apiKey, self.data.language, sectionModel, apiKeys)
           logger.log(`[generateCard] Section ${index + 1} expanded, subParagraphs count:`, expandedSection.subParagraphs?.length || 0)
-          return { index, expandedSection }
+          expandedSections.push({ index, expandedSection })
         } catch (error) {
           logger.error(`[generateCard] Section ${index + 1} expansion failed:`, error)
           // Return fallback section with summary only
-          return {
+          expandedSections.push({
             index,
             expandedSection: {
               intro: section.summary,
               subParagraphs: [],
               imageUrl: ''
             }
-          }
+          })
         }
-      })
+      }
 
-      const expandedSections = await Promise.all(expansionPromises)
-      logger.log('[generateCard] All sections expanded concurrently')
+      logger.log('[generateCard] All sections expanded sequentially')
 
-      // Step 2: Generate all images in parallel
+      // Step 2: Generate all images sequentially (one at a time) to avoid rate limiting
       this.setData({
         loadingStep: isEn ? 'Loading images...' : '加载图片中...',
         loadingTip: isEn ? 'Fetching visual content' : '获取视觉内容',
         loadingDetail: isEn ? 'Loading images for all sections...' : '加载所有章节图片...'
       })
 
-      const imagePromises = expandedSections.map(async ({ index, expandedSection }) => {
+      const paragraphs = []
+
+      // Generate section images one at a time
+      for (let i = 0; i < expandedSections.length; i++) {
+        if (self.data.shouldCancel) break
+
+        const { index, expandedSection } = expandedSections[i]
+        this.setData({
+          loadingDetail: isEn ? `Generating image ${i + 1}/${expandedSections.length}...` : `正在生成第 ${i + 1}/${expandedSections.length} 张图片...`
+        })
+
         let imageUrl = ''
         try {
           imageUrl = await generateImage(outline.sections[index].imagePrompt, apiKey)
@@ -788,17 +805,22 @@ Page({
           imageUrl: imageUrl
         })
         logger.log(`[generateCard] Section ${index + 1} final subParagraphs count:`, finalSection.subParagraphs?.length || 0)
-        return finalSection
+        paragraphs.push(finalSection)
+      }
+
+      // Generate hero image
+      this.setData({
+        loadingDetail: isEn ? 'Generating hero image...' : '正在生成封面图...'
       })
 
-      const heroImagePromise = generateHeroImage(outline.title, outline.originalCategory, apiKey)
+      const heroImageUrl = await generateHeroImage(outline.title, outline.originalCategory, apiKey)
+      if (heroImageUrl) {
+        logger.log('[generateCard] Hero image generated')
+      } else {
+        logger.warn('[generateCard] Hero image generation failed, continuing without it')
+      }
 
-      const [paragraphs, heroImageUrl] = await Promise.all([
-        Promise.all(imagePromises),
-        heroImagePromise
-      ])
-
-      logger.log('[generateCard] All sections processed')
+      logger.log('[generateCard] All sections processed sequentially')
       logger.log('[generateCard] Total paragraphs count:', paragraphs.length)
       paragraphs.forEach((para, index) => {
         logger.log(`[generateCard] Final paragraph ${index + 1} subParagraphs count:`, para.subParagraphs?.length || 0)
