@@ -113,7 +113,11 @@ Page({
     articleCount: 0,
     // Streaming progress state
     streamingSections: [], // Array of section progress (title, completed, model)
-    streamingActive: false
+    streamingActive: false,
+    // Loading flashcard rotation
+    loadingFlashcard: null,
+    loadingFlashcardVisible: false,
+    loadingFlashcardTimer: null
   },
 
   onLoad() {
@@ -655,6 +659,9 @@ Page({
       loadingDetail: ''
     })
 
+    // Start flashcard rotation during loading
+    this.startLoadingFlashcardRotation()
+
     logger.log('[generateCard] Category Selection:', {
       selectedCategory: this.data.selectedCategory,
       customCategory: this.data.customCategory
@@ -977,7 +984,79 @@ Page({
         loading: false,
         shouldCancel: false
       })
+      // Stop flashcard rotation
+      self.stopLoadingFlashcardRotation()
     }
+  },
+
+  // Loading flashcard rotation functions
+  startLoadingFlashcardRotation() {
+    logger.log('[Flashcard Rotation] Starting')
+
+    // Get random flashcards from all categories
+    const allFlashcards = this.data.flashcards || []
+    if (allFlashcards.length === 0) {
+      logger.warn('[Flashcard Rotation] No flashcards available')
+      return
+    }
+
+    // Start rotation
+    this.showNextLoadingFlashcard()
+  },
+
+  stopLoadingFlashcardRotation() {
+    logger.log('[Flashcard Rotation] Stopping')
+
+    if (this.data.loadingFlashcardTimer) {
+      clearTimeout(this.data.loadingFlashcardTimer)
+      this.setData({
+        loadingFlashcardTimer: null,
+        loadingFlashcard: null,
+        loadingFlashcardVisible: false
+      })
+    }
+  },
+
+  showNextLoadingFlashcard() {
+    // Stop if not loading anymore
+    if (!this.data.loading) {
+      this.stopLoadingFlashcardRotation()
+      return
+    }
+
+    const allFlashcards = this.data.flashcards || []
+    if (allFlashcards.length === 0) {
+      return
+    }
+
+    // Pick a random flashcard
+    const randomIndex = Math.floor(Math.random() * allFlashcards.length)
+    const flashcard = allFlashcards[randomIndex]
+
+    logger.log('[Flashcard Rotation] Showing flashcard:', flashcard.category)
+
+    // Fade in the new flashcard
+    this.setData({
+      loadingFlashcardVisible: true,
+      loadingFlashcard: flashcard
+    })
+
+    // Set timer to fade out and show next one after 10 seconds
+    const timer = setTimeout(() => {
+      // Fade out current flashcard
+      this.setData({
+        loadingFlashcardVisible: false
+      })
+
+      // Wait for fade out animation (500ms), then show next
+      setTimeout(() => {
+        this.showNextLoadingFlashcard()
+      }, 500)
+    }, 10000)
+
+    this.setData({
+      loadingFlashcardTimer: timer
+    })
   },
 
   copyArticle() {

@@ -156,6 +156,26 @@
         </view>
       </view>
 
+      <!-- Loading Flashcard Display -->
+      <view class="loading-flashcard-container" wx:if="{{loadingFlashcard}}">
+        <view class="loading-flashcard {{loadingFlashcardVisible ? 'fade-in' : 'fade-out'}}">
+          <view class="loading-flashcard-category" style="background: {{loadingFlashcard.color}}; color: #fff;">
+            <text class="loading-flashcard-icon">{{loadingFlashcard.icon}}</text>
+            <text class="loading-flashcard-category-label">{{loadingFlashcard.label}}</text>
+          </view>
+          <view class="loading-flashcard-content">
+            <view class="loading-flashcard-question">
+              <text class="loading-flashcard-q-label">Q:</text>
+              <text class="loading-flashcard-q-text">{{loadingFlashcard.question}}</text>
+            </view>
+            <view class="loading-flashcard-answer">
+              <text class="loading-flashcard-a-label">A:</text>
+              <text class="loading-flashcard-a-text">{{loadingFlashcard.answer}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
       <view class="swab-tip-btn" bindtap="generateJoke">
         <text class="tip-icon">🎣</text>
         <text class="tip-text">{{uiText.jokeBtn}}</text>
