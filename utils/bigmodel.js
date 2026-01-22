@@ -312,6 +312,9 @@ function generateArticleOutline(category, apiKey, language = 'en', onProgress = 
     const outlineModel = MODELS.DEEPSEEK_CHAT
     logger.log('[generateArticleOutline] User model:', model, '→ Outline model:', outlineModel, '(DeepSeek-Chat for fast framework)')
 
+    const systemPrompt = language === 'en'
+      ? `You are an expert fly fishing writer. Create a comprehensive article outline about ${topic}.
+
 !!! WARNING: SUMMARY WORD COUNT LIMIT - 5 TO 10 WORDS MAXIMUM !!!
 
 Required Structure:
