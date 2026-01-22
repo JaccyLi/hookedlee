@@ -378,14 +378,6 @@ Output ONLY the JSON object.`
 
 只输出JSON对象。`
 
-    if (onProgress) {
-      onProgress({
-        stage: 'outline',
-        message: language === 'en' ? 'Searching article outline...' : '正在搜索文章大纲...',
-        detail: language === 'en' ? 'Finding title and section summaries' : '查找标题和章节摘要'
-      })
-    }
-
     try {
       // Check if backend proxy is enabled
       const useBackend = backendClient.isBackendEnabled()
