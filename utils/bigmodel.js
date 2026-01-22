@@ -679,8 +679,8 @@ function generateImage(prompt, apiKey, isHero = false) {
 
       // Fallback to direct API call if backend failed or was not enabled
       logger.log('[generateImage] Using direct API call')
-      // Use GLM-Image for hero, CogView-4 for others
-      const model = isHero ? 'glm-image' : 'cogview-4-250304'
+      // Use CogView-3-Flash for all images (free model)
+      const model = 'cogview-3-flash'
       const requestPayload = {
         model: model,
         prompt: prompt,

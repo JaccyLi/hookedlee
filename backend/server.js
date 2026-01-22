@@ -240,7 +240,7 @@ app.post('/api/proxy/deepseek', authenticate, async (req, res) => {
   }
 })
 
-// Proxy endpoint for image generation (BigModel CogView & GLM-Image)
+// Proxy endpoint for image generation (BigModel CogView-3-Flash - Free)
 app.post('/api/proxy/image', authenticate, async (req, res) => {
   try {
     if (!API_KEYS.BIGMODEL) {
@@ -251,8 +251,8 @@ app.post('/api/proxy/image', authenticate, async (req, res) => {
 
     const { prompt, size, isHero } = req.body
 
-    // Use GLM-Image for hero images, CogView-4 for others
-    const model = isHero ? 'glm-image' : 'cogview-4-250304'
+    // Use CogView-3-Flash for all images (free model)
+    const model = 'cogview-3-flash'
 
     console.log('[Image Gen]', isHero ? 'Hero image' : 'Section image', 'using model:', model)
 
