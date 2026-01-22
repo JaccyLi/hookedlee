@@ -1,6 +1,7 @@
 const bigModelModule = require('../../utils/bigmodel.js')
 const categoriesModule = require('../../utils/categories.js')
 const backendClient = require('../../utils/backend-client.js')
+const websocketClient = require('../../utils/websocket.js')
 const flashcardsModule = require('./flashcards/fly-fishing-flashcards.js')
 const flyCastingFlashcardsModule = require('./flashcards/fly_casting_flashcards.js')
 const distanceCastingFlashcardsModule = require('./flashcards/distance_casting_flashcards.js')
@@ -109,7 +110,10 @@ Page({
     showAnswer: false,
     cardTranslateX: 0,
     cardOpacity: 1,
-    articleCount: 0
+    articleCount: 0,
+    // Streaming content state
+    streamingSections: [], // Array of streaming section contents
+    streamingActive: false
   },
 
   onLoad() {
@@ -716,67 +720,161 @@ Page({
       this.setData({
         loadingStep: isEn ? 'Compiling content...' : '编译内容中...',
         loadingTip: isEn ? 'Gathering information' : '收集信息',
-        loadingDetail: isEn ? `Retrieving details...` : `获取详细信息...`
+        loadingDetail: isEn ? `Connecting to streaming service...` : `正在连接流式服务...`
       })
 
-      // Step 1: Expand all 5 sections sequentially (one at a time) to avoid rate limiting
-      logger.log('[generateCard] Starting sequential expansion of', outline.sections.length, 'sections')
-
-      const expandedSections = []
-
-      for (let index = 0; index < outline.sections.length; index++) {
-        if (self.data.shouldCancel) break
-
-        const section = outline.sections[index]
-        logger.log(`[generateCard] Expanding section ${index + 1}/${outline.sections.length}:`, section.title)
-
-        // Update progress UI
-        this.setData({
-          loadingDetail: isEn ? `Expanding section ${index + 1}/${outline.sections.length}...` : `正在扩展第 ${index + 1}/${outline.sections.length} 章节...`
-        })
-
-        // Assign model based on user selection
-        let sectionModel
-        if (selectedModel === 'deepseek-reasoner') {
-          // High quality mode: Use DeepSeek-Reasoner for all sections
-          sectionModel = 'deepseek-reasoner'
-          logger.log(`[generateCard] Section ${index + 1} using: DeepSeek-Reasoner (high quality mode)`)
-        } else {
-          // Default mode: Fixed model assignment for 3 sections
-          if (index === 0) {
-            // Section 1: DeepSeek-Reasoner (highest quality for first section)
-            sectionModel = 'deepseek-reasoner'
-            logger.log(`[generateCard] Section ${index + 1} using: DeepSeek-Reasoner (default mode)`)
-          } else if (index === 1) {
-            // Section 2: DeepSeek-Chat (fast and good quality)
-            sectionModel = 'deepseek-chat'
-            logger.log(`[generateCard] Section ${index + 1} using: DeepSeek-Chat (default mode)`)
-          } else {
-            // Section 3: GLM-4.7 (reliable quality)
-            sectionModel = 'glm-4.7'
-            logger.log(`[generateCard] Section ${index + 1} using: GLM-4.7 (default mode)`)
-          }
-        }
-
-        try {
-          const expandedSection = await expandSection(section, apiKey, self.data.language, sectionModel, apiKeys)
-          logger.log(`[generateCard] Section ${index + 1} expanded, subParagraphs count:`, expandedSection.subParagraphs?.length || 0)
-          expandedSections.push({ index, expandedSection })
-        } catch (error) {
-          logger.error(`[generateCard] Section ${index + 1} expansion failed:`, error)
-          // Return fallback section with summary only
-          expandedSections.push({
-            index,
-            expandedSection: {
-              intro: section.summary,
-              subParagraphs: [],
-              imageUrl: ''
-            }
-          })
-        }
+      // Step 1: Connect to WebSocket for streaming
+      let wsConnected = false
+      try {
+        await websocketClient.connect('dummy_token') // We'll use backend auth
+        wsConnected = true
+        logger.log('[generateCard] WebSocket connected')
+      } catch (error) {
+        logger.error('[generateCard] WebSocket connection failed:', error)
+        // Fall back to non-streaming mode
       }
 
-      logger.log('[generateCard] All sections expanded sequentially')
+      // Step 2: Expand sections in parallel with streaming
+      logger.log('[generateCard] Starting parallel expansion of', outline.sections.length, 'sections')
+
+      // Initialize streaming sections array
+      const streamingSections = outline.sections.map((section, index) => ({
+        index,
+        title: section.title,
+        summary: section.summary,
+        content: '',
+        completed: false,
+        model: null
+      }))
+
+      this.setData({
+        streamingSections,
+        streamingActive: true
+      })
+
+      // Assign models and create expansion promises
+      const expansionPromises = outline.sections.map((section, index) => {
+        return new Promise(async (resolve) => {
+          // Assign model based on user selection
+          let sectionModel
+          if (selectedModel === 'deepseek-reasoner') {
+            sectionModel = 'deepseek-reasoner'
+          } else {
+            // Default mode: Fixed model assignment for 3 sections
+            if (index === 0) {
+              sectionModel = 'deepseek-reasoner'
+            } else if (index === 1) {
+              sectionModel = 'deepseek-chat'
+            } else {
+              sectionModel = 'glm-4.7'
+            }
+          }
+
+          logger.log(`[generateCard] Section ${index + 1} using: ${sectionModel}`)
+
+          // Update progress UI
+          const updateProgress = (detail) => {
+            const currentStreaming = self.data.streamingSections
+            currentStreaming[index].model = sectionModel
+            self.setData({
+              loadingDetail: detail,
+              streamingSections: currentStreaming
+            })
+          }
+
+          updateProgress(isEn ? `Searching section ${index + 1}...` : `正在查找第 ${index + 1} 章节...`)
+
+          if (wsConnected) {
+            // Use WebSocket streaming
+            let fullContent = ''
+
+            websocketClient.streamSection(
+              index,
+              sectionModel,
+              [
+                { role: 'system', content: `You are an expert fly fishing writer. Expand the following section into detailed content.` },
+                { role: 'user', content: `Section: ${section.title}\n\nSummary: ${section.summary}\n\nWrite a comprehensive expansion (500-800 words) covering this topic in detail.` }
+              ],
+              0.8,
+              // onChunk
+              (chunk) => {
+                fullContent += chunk
+                const currentStreaming = self.data.streamingSections
+                currentStreaming[index].content = fullContent
+                self.setData({
+                  streamingSections: currentStreaming
+                })
+              },
+              // onDone
+              () => {
+                logger.log(`[generateCard] Section ${index + 1} streaming completed`)
+
+                // Parse content into intro and sub-paragraphs
+                const expandedSection = self.parseStreamingContent(fullContent, section)
+
+                const currentStreaming = self.data.streamingSections
+                currentStreaming[index].completed = true
+                currentStreaming[index].expandedSection = expandedSection
+                self.setData({
+                  streamingSections: currentStreaming
+                })
+
+                updateProgress(isEn ? `Completed section ${index + 1}` : `完成第 ${index + 1} 章节`)
+                resolve({ index, expandedSection })
+              },
+              // onError
+              (error) => {
+                logger.error(`[generateCard] Section ${index + 1} streaming error:`, error)
+                // Fallback to summary
+                const expandedSection = {
+                  intro: section.summary,
+                  subParagraphs: [],
+                  imageUrl: ''
+                }
+                resolve({ index, expandedSection })
+              }
+            )
+          } else {
+            // Fallback to non-streaming mode
+            try {
+              const expandedSection = await expandSection(section, apiKey, self.data.language, sectionModel, apiKeys)
+              logger.log(`[generateCard] Section ${index + 1} expanded (non-streaming)`)
+
+              const currentStreaming = self.data.streamingSections
+              currentStreaming[index].completed = true
+              currentStreaming[index].expandedSection = expandedSection
+              self.setData({
+                streamingSections: currentStreaming
+              })
+
+              resolve({ index, expandedSection })
+            } catch (error) {
+              logger.error(`[generateCard] Section ${index + 1} expansion failed:`, error)
+              resolve({
+                index,
+                expandedSection: {
+                  intro: section.summary,
+                  subParagraphs: [],
+                  imageUrl: ''
+                }
+              })
+            }
+          }
+        })
+      })
+
+      // Wait for all sections to complete
+      const expandedSections = await Promise.all(expansionPromises)
+      logger.log('[generateCard] All sections expanded in parallel')
+
+      // Close WebSocket connection
+      if (wsConnected) {
+        websocketClient.close()
+      }
+
+      this.setData({
+        streamingActive: false
+      })
 
       // Step 2: Generate images in batches of 2 (parallel within batch, sequential between batches)
       this.setData({
@@ -910,6 +1008,33 @@ Page({
         loading: false,
         shouldCancel: false
       })
+    }
+  },
+
+  /**
+   * Parse streaming content into structured format (intro + sub-paragraphs)
+   * @param {string} content - Raw streaming content
+   * @param {Object} section - Section object with title and summary
+   * @returns {Object} Structured content with intro and sub-paragraphs
+   */
+  parseStreamingContent(content, section) {
+    // Simple parsing: split by paragraphs and structure
+    const paragraphs = content
+      .split('\n')
+      .filter(p => p.trim().length > 0)
+      .map(p => p.trim())
+
+    // First paragraph is intro, rest are sub-paragraphs
+    const intro = paragraphs[0] || section.summary
+    const subParagraphs = paragraphs.slice(1).map(text => ({
+      text,
+      type: 'paragraph'
+    }))
+
+    return {
+      intro,
+      subParagraphs,
+      imageUrl: ''
     }
   },
 

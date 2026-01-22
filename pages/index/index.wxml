@@ -137,6 +137,28 @@
       <text class="swab-loading-text">{{loadingStep}}</text>
       <text class="swab-loading-detail">{{loadingDetail}}</text>
 
+      <!-- Streaming Content Display -->
+      <view class="swab-streaming-section" wx:if="{{streamingActive && streamingSections.length > 0}}">
+        <view class="streaming-sections-container">
+          <view
+            class="streaming-section-card"
+            wx:for="{{streamingSections}}"
+            wx:key="index"
+          >
+            <view class="streaming-section-header">
+              <text class="streaming-section-title">{{item.title}}</text>
+              <view class="streaming-status">
+                <text class="status-dot {{item.completed ? 'completed' : 'streaming'}}"></text>
+                <text class="status-text">{{item.completed ? 'Done' : 'Searching...'}}</text>
+              </view>
+            </view>
+            <view class="streaming-section-content">
+              <text class="streaming-text">{{item.content}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
       <view class="swab-tip-btn" bindtap="generateJoke">
         <text class="tip-icon">🎣</text>
         <text class="tip-text">{{uiText.jokeBtn}}</text>

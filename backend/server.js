@@ -15,6 +15,7 @@ const helmet = require('helmet')
 const compression = require('compression')
 const rateLimit = require('express-rate-limit')
 const axios = require('axios')
+const WebSocket = require('ws')
 const { authenticate, verifyWeChatCode, generateToken } = require('./middleware/auth.js')
 
 const app = express()
@@ -556,6 +557,181 @@ httpServer.on('error', (error) => {
   } else {
     console.error('❌ HTTP server error:', error)
   }
+})
+
+// ========== WEBSOCKET SERVER FOR STREAMING ==========
+
+// Choose the appropriate server for WebSocket (HTTPS or HTTP)
+const wsServer = httpsServer || httpServer
+const wss = new WebSocket.Server({ server: wsServer, path: '/ws' })
+
+console.log('=================================')
+console.log('🔌 WebSocket Server Started')
+console.log('=================================')
+console.log(`✓ WebSocket running on ${httpsServer ? 'HTTPS' : 'HTTP'} server`)
+console.log('=================================\n')
+
+// Store active connections with their session info
+const connections = new Map()
+
+wss.on('connection', (ws, req) => {
+  const clientId = Date.now() + Math.random().toString(36).substr(2, 9)
+  console.log(`[WebSocket] Client connected: ${clientId}`)
+
+  // Store connection
+  connections.set(clientId, {
+    ws,
+    isAuthenticated: false,
+    userOpenid: null
+  })
+
+  // Send welcome message
+  ws.send(JSON.stringify({
+    type: 'connected',
+    clientId: clientId,
+    message: 'Connected to streaming server'
+  }))
+
+  ws.on('message', async (message) => {
+    try {
+      const data = JSON.parse(message)
+      console.log(`[WebSocket] Received from ${clientId}:`, data.type)
+
+      const connection = connections.get(clientId)
+
+      // Handle authentication
+      if (data.type === 'auth') {
+        const { token } = data
+        // Verify token (simplified - use your auth middleware)
+        if (token) {
+          connection.isAuthenticated = true
+          connection.userOpenid = token // In production, verify JWT properly
+          ws.send(JSON.stringify({
+            type: 'auth_success',
+            message: 'Authenticated successfully'
+          }))
+        } else {
+          ws.send(JSON.stringify({
+            type: 'auth_error',
+            message: 'Authentication failed'
+          }))
+        }
+        return
+      }
+
+      // Handle streaming requests
+      if (data.type === 'stream_request') {
+        const { model, messages, temperature, sectionIndex } = data
+
+        console.log(`[WebSocket] Stream request for section ${sectionIndex}, model: ${model}`)
+
+        // Route to appropriate API
+        let apiUrl = ''
+        let apiKey = ''
+
+        if (model === 'glm-4.7' || model === 'glm-4.7-flash' || model === 'glm-4.7-flashx') {
+          apiUrl = 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
+          apiKey = getNextBigModelKey()
+        } else if (model === 'deepseek-chat' || model === 'deepseek-reasoner') {
+          apiUrl = 'https://api.deepseek.com/v1/chat/completions'
+          apiKey = API_KEYS.DEEPSEEK
+        }
+
+        if (!apiUrl || !apiKey) {
+          ws.send(JSON.stringify({
+            type: 'error',
+            sectionIndex,
+            error: 'Model not configured'
+          }))
+          return
+        }
+
+        try {
+          // Make streaming request to AI API
+          const response = await axios({
+            method: 'post',
+            url: apiUrl,
+            data: {
+              model,
+              messages,
+              temperature: temperature || 0.8,
+              stream: true
+            },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            responseType: 'stream'
+          })
+
+          // Stream chunks back to client
+          response.data.on('data', (chunk) => {
+            const lines = chunk.toString().split('\n').filter(line => line.trim() !== '')
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6)
+                if (data === '[DONE]') {
+                  ws.send(JSON.stringify({
+                    type: 'done',
+                    sectionIndex
+                  }))
+                  return
+                }
+
+                try {
+                  const parsed = JSON.parse(data)
+                  const content = parsed.choices?.[0]?.delta?.content || ''
+
+                  if (content) {
+                    ws.send(JSON.stringify({
+                      type: 'chunk',
+                      sectionIndex,
+                      content
+                    }))
+                  }
+                } catch (e) {
+                  // Skip invalid JSON
+                }
+              }
+            }
+          })
+
+          response.data.on('end', () => {
+            console.log(`[WebSocket] Stream completed for section ${sectionIndex}`)
+          })
+
+          response.data.on('error', (error) => {
+            console.error(`[WebSocket] Stream error for section ${sectionIndex}:`, error)
+            ws.send(JSON.stringify({
+              type: 'error',
+              sectionIndex,
+              error: error.message
+            }))
+          })
+        } catch (error) {
+          console.error(`[WebSocket] Stream setup error for section ${sectionIndex}:`, error)
+          ws.send(JSON.stringify({
+            type: 'error',
+            sectionIndex,
+            error: error.message
+          }))
+        }
+      }
+    } catch (error) {
+      console.error('[WebSocket] Message handling error:', error)
+    }
+  })
+
+  ws.on('close', () => {
+    console.log(`[WebSocket] Client disconnected: ${clientId}`)
+    connections.delete(clientId)
+  })
+
+  ws.on('error', (error) => {
+    console.error(`[WebSocket] Error for ${clientId}:`, error)
+    connections.delete(clientId)
+  })
 })
 
 // ========== GRACEFUL SHUTDOWN ==========

@@ -1161,3 +1161,108 @@ page {
   font-size: 32rpx;
   line-height: 1;
 }
+
+/* Streaming Content Styles */
+.swab-streaming-section {
+  margin-top: 40rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.streaming-sections-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  width: 100%;
+}
+
+.streaming-section-card {
+  background: rgba(0, 0, 0, 0.03);
+  border: 3rpx solid #000000;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  box-sizing: border-box;
+  min-height: 200rpx;
+  animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.streaming-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+  padding-bottom: 12rpx;
+  border-bottom: 2rpx solid rgba(0, 0, 0, 0.1);
+}
+
+.streaming-section-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #000000;
+  flex: 1;
+}
+
+.streaming-status {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.status-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.status-dot.streaming {
+  background: #FF9500;
+  box-shadow: 0 0 0 4rpx rgba(255, 149, 0, 0.2);
+}
+
+.status-dot.completed {
+  background: #34C759;
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+.status-text {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #666666;
+}
+
+.streaming-section-content {
+  width: 100%;
+  min-height: 120rpx;
+}
+
+.streaming-text {
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: #333333;
+  word-break: break-word;
+  white-space: pre-wrap;
+  display: block;
+}
