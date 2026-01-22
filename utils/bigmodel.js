@@ -325,9 +325,7 @@ Required Structure:
       "sentences": [
         "First key point about this section (10-15 words)",
         "Second key point about this section (10-15 words)",
-        "Third key point about this section (10-15 words)",
-        "Fourth key point about this section (10-15 words)",
-        "Fifth key point about this section (10-15 words)"
+        "Third key point about this section (10-15 words)"
       ],
       "imagePrompt": "Detailed image description for this section"
     },
@@ -340,7 +338,7 @@ Required Structure:
 
 REQUIREMENTS:
 - Create exactly 3 sections covering different aspects of the topic
-- Each section MUST have exactly 5 sentences
+- Each section MUST have exactly 3 sentences
 - Each sentence should be 10-15 words
 - Sentences should outline key points to be expanded into paragraphs later
 - Image prompts should describe professional fly fishing photography
@@ -359,9 +357,7 @@ Output ONLY the JSON object.`
       "sentences": [
         "关于本节的第一个要点（10-15个词）",
         "关于本节的第二个要点（10-15个词）",
-        "关于本节的第三个要点（10-15个词）",
-        "关于本节的第四个要点（10-15个词）",
-        "关于本节的第五个要点（10-15个词）"
+        "关于本节的第三个要点（10-15个词）"
       ],
       "imagePrompt": "本节的详细图片描述"
     },
@@ -374,7 +370,7 @@ Output ONLY the JSON object.`
 
 要求：
 - 创建正好3个章节，涵盖主题的不同方面
-- 每个章节必须有5个句子
+- 每个章节必须有3个句子
 - 每个句子应该是10-15个词
 - 句子应该概述稍后要扩展成段落的关键点
 - 图片提示应该描述专业的飞钓摄影
@@ -471,10 +467,10 @@ Output ONLY the JSON object.`
         throw new Error('Invalid outline structure: expected at least 3 sections')
       }
 
-      // Validate each section has 5 sentences
+      // Validate each section has 3 sentences
       for (const section of outlineData.sections) {
-        if (!section.sentences || !Array.isArray(section.sentences) || section.sentences.length !== 5) {
-          throw new Error(`Invalid section structure: expected 5 sentences in section "${section.title}"`)
+        if (!section.sentences || !Array.isArray(section.sentences) || section.sentences.length !== 3) {
+          throw new Error(`Invalid section structure: expected 3 sentences in section "${section.title}"`)
         }
       }
 
@@ -695,7 +691,7 @@ async function expandSentence(section, sentence, sentenceIndex, apiKey, language
 
 Section Title: ${section.title}
 
-Sentence to Expand (number ${sentenceIndex + 1} of 5):
+Sentence to Expand (number ${sentenceIndex + 1} of 3):
 ${sentence}
 
 Requirements:
@@ -711,7 +707,7 @@ Output ONLY the expanded paragraph text starting with the number.`
 
 章节标题：${section.title}
 
-要扩展的句子（第${sentenceIndex + 1}个，共5个）：
+要扩展的句子（第${sentenceIndex + 1}个，共3个）：
 ${sentence}
 
 要求：

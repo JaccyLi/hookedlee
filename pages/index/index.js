@@ -760,7 +760,7 @@ Page({
       logger.log('[generateCard] Starting parallel processing: text expansion + image generation')
       logger.log('[Image Models] Hero:', heroImageModel || 'cogview-3-flash', 'Sections: cogview-3-flash')
 
-      // Process 1: Text Expansion (15 sentences in batches of 3)
+      // Process 1: Text Expansion (9 sentences in batches of 3)
       const textExpansionProcess = async () => {
         logger.log('[Text Expansion] Starting...')
 
@@ -782,7 +782,7 @@ Page({
           return results
         }
 
-        // Collect all sentences
+        // Collect all sentences (3 sections × 3 sentences = 9 total)
         const allSentences = []
         outline.sections.forEach((section, sectionIndex) => {
           section.sentences.forEach((sentence, sentenceIndex) => {
@@ -796,7 +796,9 @@ Page({
           })
         })
 
-        // Process in batches of 3
+        logger.log(`[Text Expansion] Processing ${allSentences.length} sentences (3 sections × 3 sentences)`)
+
+        // Process in batches of 3 (3 batches total: 9 sentences / 3 per batch)
         const processedSentences = await processBatch(
           allSentences,
           3,
