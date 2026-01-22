@@ -637,22 +637,67 @@ ${sentencesText}
       }
     }
 
-    // Parse and return content
-    content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '')
-    const sectionData = JSON.parse(content)
-    logger.log('[expandSection] Parsed sectionData, subParagraphs count:', sectionData.subParagraphs?.length || 0)
+    // Parse and return content with robust error handling
+    content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim()
+
+    let sectionData
+    try {
+      sectionData = JSON.parse(content)
+      logger.log('[expandSection] Parsed sectionData, subParagraphs count:', sectionData.subParagraphs?.length || 0)
+    } catch (parseError) {
+      logger.error('[expandSection] JSON parse failed:', parseError.message)
+      logger.error('[expandSection] Content preview:', content.substring(0, 500))
+
+      // Try to fix common JSON issues
+      try {
+        // Attempt to extract JSON from response if it's embedded in text
+        const jsonMatch = content.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          sectionData = JSON.parse(jsonMatch[0])
+          logger.log('[expandSection] Parsed with extracted JSON')
+        } else {
+          throw new Error('No JSON found in response')
+        }
+      } catch (secondError) {
+        logger.error('[expandSection] Second parse attempt failed:', secondError.message)
+
+        // Ultimate fallback: generate structure from sentences
+        logger.warn('[expandSection] Using fallback structure from sentences')
+        sectionData = {
+          intro: `${section.title}`,
+          subParagraphs: sentences.map((s, i) => `${i + 1}. ${s}`)
+        }
+      }
+    }
+
+    // Ensure paragraphs are properly numbered
+    const validParagraphs = (sectionData.subParagraphs || []).map((para, index) => {
+      const expectedPrefix = `${index + 1}.`
+      if (!para.startsWith(expectedPrefix)) {
+        logger.warn(`[expandSection] Paragraph ${index + 1} missing prefix, adding: ${expectedPrefix}`)
+        return `${expectedPrefix} ${para}`
+      }
+      return para
+    })
+
+    // Ensure we have exactly 3 paragraphs
+    while (validParagraphs.length < 3) {
+      const index = validParagraphs.length
+      logger.warn(`[expandSection] Missing paragraph ${index + 1}, creating from sentence`)
+      validParagraphs.push(`${index + 1}. ${sentences[index] || ''}`)
+    }
 
     return {
-      intro: sectionData.intro || section.summary,
-      subParagraphs: sectionData.subParagraphs || [],
+      intro: sectionData.intro || sectionData.summary || section.title,
+      subParagraphs: validParagraphs.slice(0, 3),
       imagePrompt: section.imagePrompt
     }
   } catch (error) {
     logger.error('[expandSection] Error:', error)
-    // Fallback to original summary on error
+    // Ultimate fallback: create numbered paragraphs from sentences
     return {
-      intro: section.summary,
-      subParagraphs: [],
+      intro: section.title,
+      subParagraphs: sentences.map((s, i) => `${i + 1}. ${s}`),
       imagePrompt: section.imagePrompt
     }
   }
