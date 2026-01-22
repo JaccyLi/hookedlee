@@ -95,6 +95,12 @@ app.get('/api/models', (req, res) => {
       available: true
     })
     models.push({
+      id: 'glm-4.7-flash',
+      name: 'GLM-4.7-Flash',
+      provider: 'bigmodel',
+      available: true
+    })
+    models.push({
       id: 'glm-4.7-flashx',
       name: 'GLM-4.7-FlashX',
       provider: 'bigmodel',
@@ -299,7 +305,7 @@ app.post('/api/proxy/chat', authenticate, async (req, res) => {
     }
 
     // Route to appropriate proxy
-    if (model === 'glm-4.7' || model === 'glm-4.7-flashx') {
+    if (model === 'glm-4.7' || model === 'glm-4.7-flash' || model === 'glm-4.7-flashx') {
       req.url = '/api/proxy/glm'
       return app._router.handle(req, res)
     } else if (model === 'deepseek-chat' || model === 'deepseek-reasoner') {

@@ -106,6 +106,7 @@ module.exports = {
   // Model Names
   MODELS: {
     GLM_4_7: 'glm-4.7',
+    GLM_4_7_FLASH: 'glm-4.7-flash', // Fast variant for content expansion
     GLM_4_7_FLASHX: 'glm-4.7-flashx', // High-speed variant for framework generation
     DEEPSEEK_CHAT: 'deepseek-chat',
     DEEPSEEK_REASONER: 'deepseek-reasoner'

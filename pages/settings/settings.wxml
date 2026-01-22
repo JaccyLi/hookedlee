@@ -34,7 +34,7 @@
           </view>
           <view class="model-details">
             <text class="model-name">{{language === 'en' ? 'Quality Search' : '质量搜索'}}</text>
-            <text class="model-subname"></text>
+            <text class="model-subname">GLM-4.7</text>
             <text class="model-tags">
               <text class="tag tag-quality">{{language === 'en' ? 'Quality' : '质量好'}}</text>
               <text class="tag tag-speed">{{language === 'en' ? 'Slightly Slow' : '稍慢'}}</text>
@@ -42,6 +42,28 @@
             <text class="model-desc">{{language === 'en' ? '✅ Comprehensive search results with detailed information' : '✅ 全面的搜索结果，信息详细'}}</text>
           </view>
           <view class="model-indicator {{selectedModel === 'glm-4.7' ? 'active' : ''}}">
+            <view class="indicator-dot"></view>
+          </view>
+        </view>
+      </label>
+
+      <!-- Balanced Search Engine (GLM-4.7-Flash) -->
+      <label class="model-card {{selectedModel === 'glm-4.7-flash' ? 'active' : ''}}">
+        <radio value="glm-4.7-flash" checked="{{selectedModel === 'glm-4.7-flash'}}" class="hidden-radio" />
+        <view class="model-card-content">
+          <view class="model-icon-wrapper">
+            <text class="model-icon">🚀</text>
+          </view>
+          <view class="model-details">
+            <text class="model-name">{{language === 'en' ? 'Balanced Search' : '平衡搜索'}}</text>
+            <text class="model-subname">GLM-4.7-Flash</text>
+            <text class="model-tags">
+              <text class="tag tag-quality tag-recommended">{{language === 'en' ? 'Good Quality' : '质量好'}}</text>
+              <text class="tag tag-speed tag-recommended">{{language === 'en' ? 'Fast' : '快速'}}</text>
+            </text>
+            <text class="model-desc">{{language === 'en' ? '✅ Fast & balanced results • Great for daily use' : '✅ 快速且平衡的结果 • 适合日常使用'}}</text>
+          </view>
+          <view class="model-indicator {{selectedModel === 'glm-4.7-flash' ? 'active' : ''}}">
             <view class="indicator-dot"></view>
           </view>
         </view>
@@ -56,7 +78,7 @@
           </view>
           <view class="model-details">
             <text class="model-name">{{language === 'en' ? 'Fast Search' : '快速搜索'}}</text>
-            <text class="model-subname"></text>
+            <text class="model-subname">DeepSeek-Chat</text>
             <text class="model-tags">
               <text class="tag tag-quality tag-recommended">{{language === 'en' ? 'Good Quality' : '质量好'}}</text>
               <text class="tag tag-speed tag-recommended">{{language === 'en' ? 'Fast' : '快速'}}</text>
@@ -78,7 +100,7 @@
           </view>
           <view class="model-details">
             <text class="model-name">{{language === 'en' ? 'Deep Search' : '深度搜索'}}</text>
-            <text class="model-subname"></text>
+            <text class="model-subname">DeepSeek-Reasoner</text>
             <text class="model-tags">
               <text class="tag tag-quality tag-best">{{language === 'en' ? 'Best Quality' : '最佳质量'}}</text>
               <text class="tag tag-speed tag-slowest">{{language === 'en' ? 'Slowest' : '最慢'}}</text>

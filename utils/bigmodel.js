@@ -40,6 +40,13 @@ function getApiConfig(model, apiKeys) {
       key: apiKeys.glmApiKey,
       model: MODELS.GLM_4_7_FLASHX
     }
+  } else if (model === MODELS.GLM_4_7_FLASH) {
+    // GLM-4.7-Flash uses BigModel API
+    return {
+      url: GLM_API_URL,
+      key: apiKeys.glmApiKey,
+      model: MODELS.GLM_4_7_FLASH
+    }
   } else {
     // Default to GLM-4.7
     return {
@@ -507,6 +514,11 @@ async function expandSection(section, apiKey, language = 'en', model = 'glm-4.7'
   logger.log('[expandSection] Language:', language)
   logger.log('[expandSection] Model:', model)
 
+  // Use GLM-4.7-Flash for content expansion when glm-4.7 is selected
+  // Flash is optimized for speed and efficiency in content generation
+  const expandModel = model === MODELS.GLM_4_7 ? MODELS.GLM_4_7_FLASH : model
+  logger.log('[expandSection] Using model:', model, '→ Expansion model:', expandModel)
+
   const systemPrompt = language === 'en'
     ? `You are an expert fly fishing writer. Expand the following section summary into a complete section.
 
@@ -568,7 +580,7 @@ Output ONLY valid JSON in this format:
       // Try backend proxy first
       try {
         const response = await backendClient.expandSection({
-          model: model,
+          model: expandModel,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: language === 'en' ? 'Expand this section into full content.' : '将此章节扩展为完整内容。' }
@@ -592,7 +604,7 @@ Output ONLY valid JSON in this format:
     // Fallback to direct API call if backend failed or was not enabled
     if (!content) {
       logger.log('[expandSection] Using direct API call')
-      const apiConfig = getApiConfig(model, apiKeys || { glmApiKey: apiKey, deepseekApiKey: '' })
+      const apiConfig = getApiConfig(expandModel, apiKeys || { glmApiKey: apiKey, deepseekApiKey: '' })
 
       const requestPayload = {
         model: apiConfig.model,
