@@ -780,15 +780,15 @@ Page({
         }
       }
 
-      // Then, expand sections 1-2 in parallel (DeepSeek-Chat + GLM-4.7)
+      // Then, expand sections 1-2 in parallel (DeepSeek-Chat + GLM-4.7-Flash)
       logger.log('[generateCard] Starting parallel expansion for sections 2-3')
 
       const parallelExpansionPromises = outline.sections.slice(1).map((section, sliceIndex) => {
         const originalIndex = sliceIndex + 1 // Convert back to original index
         return new Promise(async (resolve) => {
           // Section 2 (index 1): DeepSeek-Chat
-          // Section 3 (index 2): GLM-4.7 (not flash)
-          const sectionModel = originalIndex === 1 ? 'deepseek-chat' : 'glm-4.7'
+          // Section 3 (index 2): GLM-4.7-Flash (fast, avoids timeout)
+          const sectionModel = originalIndex === 1 ? 'deepseek-chat' : 'glm-4.7-flash'
 
           logger.log(`[generateCard] Section ${originalIndex + 1} using: ${sectionModel} (parallel)`)
 

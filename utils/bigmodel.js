@@ -513,10 +513,10 @@ async function expandSection(section, apiKey, language = 'en', model = 'glm-4.7'
   logger.log('[expandSection] Language:', language)
   logger.log('[expandSection] Model:', model)
 
-  // Use the exact model specified (no Flash substitution)
-  // User wants GLM-4.7, not GLM-4.7-Flash
-  const expandModel = model
-  logger.log('[expandSection] Using model:', expandModel)
+  // Use GLM-4.7-Flash for GLM-4.7 to avoid timeouts (3x faster)
+  // GLM-4.7 takes 3-4 minutes and hits nginx timeout, Flash takes <1 minute
+  const expandModel = model === MODELS.GLM_4_7 ? MODELS.GLM_4_7_FLASH : model
+  logger.log('[expandSection] Using model:', model, '→ Expansion model:', expandModel, '(Flash substitution for speed)')
 
   const systemPrompt = language === 'en'
     ? `You are an expert fly fishing writer. Expand the following section summary into a complete section.
