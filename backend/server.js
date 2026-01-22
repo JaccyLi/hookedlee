@@ -339,21 +339,23 @@ app.post('/api/proxy/image', authenticate, async (req, res) => {
 
     console.log('[Image Gen]', isHero ? 'Hero image' : 'Section image', 'model:', model, `key ${keyIndex}/${BIGMODEL_KEYS.length}`)
 
-    const response = await axios.post(
-      'https://open.bigmodel.cn/api/paas/v4/images/generations',
-      {
-        model: model,
-        prompt: prompt,
-        size: size || '1024x1024'
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+    const response = await retryApiCall(async () => {
+      return await axios.post(
+        'https://open.bigmodel.cn/api/paas/v4/images/generations',
+        {
+          model: model,
+          prompt: prompt,
+          size: size || '1024x1024'
         },
-        timeout: 60000
-      }
-    )
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          timeout: 60000
+        }
+      )
+    }, 3) // Max 3 retries
 
     res.json(response.data)
   } catch (error) {
@@ -363,6 +365,7 @@ app.post('/api/proxy/image', authenticate, async (req, res) => {
       statusText: error.response?.statusText,
       data: error.response?.data
     })
+    // Return error response but don't crash - frontend will handle gracefully
     res.status(500).json({
       error: 'Failed to generate image',
       details: error.response?.data || error.message

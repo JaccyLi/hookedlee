@@ -686,6 +686,7 @@ function generateImage(prompt, apiKey, isHero = false) {
           return
         } catch (backendError) {
           logger.warn('[generateImage] Backend failed, falling back to direct API:', backendError.message)
+          // Continue to fallback instead of rejecting
         }
       }
 
@@ -714,19 +715,22 @@ function generateImage(prompt, apiKey, isHero = false) {
               const imageUrl = response.data.data[0].url
               resolve(imageUrl)
             } else {
-              reject(new Error('Invalid image API response'))
+              logger.error('[generateImage] Invalid image API response, returning empty string')
+              resolve('') // Resolve with empty string instead of rejecting
             }
           } catch (error) {
-            reject(new Error(`Failed to parse image API response: ${error.message}`))
+            logger.error('[generateImage] Failed to parse image API response:', error)
+            resolve('') // Resolve with empty string instead of rejecting
           }
         },
         fail: (error) => {
-          reject(new Error(`Image API request failed: ${error.errMsg || 'Network error'}`))
+          logger.error('[generateImage] Image API request failed:', error)
+          resolve('') // Resolve with empty string instead of rejecting
         }
       })
     } catch (error) {
       logger.error('[generateImage] Error:', error)
-      reject(error)
+      resolve('') // Resolve with empty string instead of rejecting
     }
   })
 }
