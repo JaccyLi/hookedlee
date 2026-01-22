@@ -539,16 +539,17 @@ Requirements:
 - Content must be practical, actionable, and highly informative
 - Include specific techniques, tips, or examples
 - Use clear, professional language
+- IMPORTANT: Each paragraph MUST start with a number prefix (1., 2., 3., 4., 5.)
 
 Output ONLY valid JSON in this format:
 {
   "intro": "Brief introduction text...",
   "subParagraphs": [
-    "First expanded paragraph (from sentence 1)...",
-    "Second expanded paragraph (from sentence 2)...",
-    "Third expanded paragraph (from sentence 3)...",
-    "Fourth expanded paragraph (from sentence 4)...",
-    "Fifth expanded paragraph (from sentence 5)..."
+    "1. First expanded paragraph (from sentence 1)...",
+    "2. Second expanded paragraph (from sentence 2)...",
+    "3. Third expanded paragraph (from sentence 3)...",
+    "4. Fourth expanded paragraph (from sentence 4)...",
+    "5. Fifth expanded paragraph (from sentence 5)..."
   ]
 }`
     : `你是一位资深的飞钓专家。将以下章节句子扩展为完整的文章章节。
@@ -566,16 +567,17 @@ ${sentencesText}
 - 内容必须实用、可操作且信息丰富
 - 包含具体技巧、提示或示例
 - 使用清晰、专业的语言
+- 重要：每个段落必须以数字前缀开头（1.、2.、3.、4.、5.）
 
 只输出以下格式的有效JSON：
 {
   "intro": "简短介绍文本...",
   "subParagraphs": [
-    "第一个扩展段落（来自句子1）...",
-    "第二个扩展段落（来自句子2）...",
-    "第三个扩展段落（来自句子3）...",
-    "第四个扩展段落（来自句子4）...",
-    "第五个扩展段落（来自句子5）..."
+    "1. 第一个扩展段落（来自句子1）...",
+    "2. 第二个扩展段落（来自句子2）...",
+    "3. 第三个扩展段落（来自句子3）...",
+    "4. 第四个扩展段落（来自句子4）...",
+    "5. 第五个扩展段落（来自句子5）..."
   ]
 }`
 
