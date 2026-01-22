@@ -1017,49 +1017,21 @@ Page({
   },
 
   async loadAllFlashcards() {
-    // Load all flashcards from all categories
-    const flashcardFiles = [
-      'fly-fishing-flashcards',
-      'fly_casting-flashcards',
-      'distance_casting-flashcards',
-      'slackline_presentation-flashcards'
+    logger.log('[loadAllFlashcards] Loading from imported modules')
+
+    // Use the already-imported flashcard modules at the top of the file
+    const flashcardModules = [
+      { module: flashcardsModule, info: { key: 'basics', color: '#FF6B6B', icon: '🎯', label: 'BASICS' } },
+      { module: flyCastingFlashcardsModule, info: { key: 'casting', color: '#4ECDC4', icon: '🎣', label: 'CASTING' } },
+      { module: distanceCastingFlashcardsModule, info: { key: 'distance', color: '#45B7D1', icon: '📏', label: 'DISTANCE' } },
+      { module: slacklinePresentationFlashcardsModule, info: { key: 'slackline', color: '#96CEB4', icon: '🎪', label: 'SLACKLINE' } }
     ]
+
     const allCards = []
 
-    // Category metadata
-    const categoryInfo = {
-      'fly-fishing-flashcards': {
-        key: 'basics',
-        color: '#FF6B6B',
-        icon: '🎯',
-        label: 'BASICS'
-      },
-      'fly_casting-flashcards': {
-        key: 'casting',
-        color: '#4ECDC4',
-        icon: '🎣',
-        label: 'CASTING'
-      },
-      'distance_casting-flashcards': {
-        key: 'distance',
-        color: '#45B7D1',
-        icon: '📏',
-        label: 'DISTANCE'
-      },
-      'slackline_presentation-flashcards': {
-        key: 'slackline',
-        color: '#96CEB4',
-        icon: '🎪',
-        label: 'SLACKLINE'
-      }
-    }
-
-    for (const filename of flashcardFiles) {
+    for (const { module, info } of flashcardModules) {
       try {
-        const module = require(`./flashcards/${filename}.js`)
-        const info = categoryInfo[filename]
-
-        // Format each flashcard with category info and language-specific text
+        // Format each flashcard with category info
         const formattedCards = module.flashcards.map(card => ({
           ...card,
           category: info.key,
@@ -1069,9 +1041,9 @@ Page({
         }))
 
         allCards.push(...formattedCards)
-        logger.log(`[loadAllFlashcards] Loaded ${filename}:`, module.flashcards.length, 'cards')
+        logger.log(`[loadAllFlashcards] Loaded ${info.label}:`, module.flashcards.length, 'cards')
       } catch (error) {
-        logger.warn(`[loadAllFlashcards] Failed to load ${filename}:`, error)
+        logger.warn(`[loadAllFlashcards] Failed to load ${info.label}:`, error)
       }
     }
 
