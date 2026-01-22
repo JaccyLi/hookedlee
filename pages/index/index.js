@@ -1110,10 +1110,10 @@ Page({
         showNextFlashcard: false
       })
 
-      // Set timer for next flashcard after 10 seconds
+      // Set timer for next flashcard after 12 seconds
       const timer = setTimeout(() => {
         this.showNextLoadingFlashcard()
-      }, 10000)
+      }, 12000)
 
       this.setData({
         loadingFlashcardTimer: timer
