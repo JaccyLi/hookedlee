@@ -778,52 +778,76 @@ Page({
 
       logger.log('[generateCard] All sections expanded sequentially')
 
-      // Step 2: Generate all images sequentially (one at a time) to avoid rate limiting
+      // Step 2: Generate images in batches of 2 (parallel within batch, sequential between batches)
       this.setData({
         loadingStep: isEn ? 'Loading images...' : '加载图片中...',
         loadingTip: isEn ? 'Fetching visual content' : '获取视觉内容',
-        loadingDetail: isEn ? 'Loading images for all sections...' : '加载所有章节图片...'
+        loadingDetail: isEn ? 'Searching images for all sections...' : '正在查找所有章节图片...'
       })
 
-      const paragraphs = []
+      const paragraphs = expandedSections.map(({ expandedSection }) => ({
+        ...expandedSection,
+        imageUrl: ''
+      }))
 
-      // Generate section images one at a time
-      for (let i = 0; i < expandedSections.length; i++) {
-        if (self.data.shouldCancel) break
+      // First batch: Hero image + Section 1 image (parallel)
+      this.setData({
+        loadingDetail: isEn ? 'Searching images (batch 1/2)...' : '正在查找图片（第1批，共2批）...'
+      })
 
-        const { index, expandedSection } = expandedSections[i]
+      let heroImageUrl = null
+      const batch1Promises = [
+        generateImage(outline.sections[0].imagePrompt, apiKey).then(url => {
+          if (url) {
+            paragraphs[0].imageUrl = url
+            logger.log('[Section 1] Image generated (batch 1)')
+          }
+        }).catch(err => logger.error('[Section 1] Image generation failed:', err)),
+        generateHeroImage(outline.title, outline.originalCategory, apiKey).then(url => {
+          heroImageUrl = url
+          if (url) {
+            logger.log('[Hero] Image generated (batch 1)')
+          }
+        }).catch(err => {
+          logger.error('[Hero] Image generation failed:', err)
+          heroImageUrl = null
+        })
+      ]
+
+      await Promise.all(batch1Promises)
+
+      // Second batch: Section 2 + Section 3 images (parallel)
+      if (expandedSections.length > 1) {
         this.setData({
-          loadingDetail: isEn ? `Generating image ${i + 1}/${expandedSections.length}...` : `正在生成第 ${i + 1}/${expandedSections.length} 张图片...`
+          loadingDetail: isEn ? 'Searching images (batch 2/2)...' : '正在查找图片（第2批，共2批）...'
         })
 
-        let imageUrl = ''
-        try {
-          imageUrl = await generateImage(outline.sections[index].imagePrompt, apiKey)
-          logger.log(`[Section ${index + 1}] Image generated`)
-        } catch (error) {
-          logger.error(`[Section ${index + 1}] Image generation failed:`, error)
+        const batch2Promises = []
+        for (let i = 1; i < expandedSections.length; i++) {
+          const promise = generateImage(outline.sections[i].imagePrompt, apiKey).then(url => {
+            if (url) {
+              paragraphs[i].imageUrl = url
+              logger.log(`[Section ${i + 1}] Image generated (batch 2)`)
+            }
+          }).catch(err => logger.error(`[Section ${i + 1}] Image generation failed:`, err))
+          batch2Promises.push(promise)
         }
 
-        const finalSection = Object.assign({}, expandedSection, {
-          imageUrl: imageUrl
-        })
-        logger.log(`[generateCard] Section ${index + 1} final subParagraphs count:`, finalSection.subParagraphs?.length || 0)
-        paragraphs.push(finalSection)
+        await Promise.all(batch2Promises)
       }
 
-      // Generate hero image
-      this.setData({
-        loadingDetail: isEn ? 'Generating hero image...' : '正在生成封面图...'
+      // Reattach expanded content to paragraphs
+      expandedSections.forEach(({ index, expandedSection }, i) => {
+        if (!paragraphs[i].imageUrl) {
+          paragraphs[i].imageUrl = ''
+        }
+        Object.assign(paragraphs[i], {
+          intro: expandedSection.intro,
+          subParagraphs: expandedSection.subParagraphs
+        })
       })
 
-      const heroImageUrl = await generateHeroImage(outline.title, outline.originalCategory, apiKey)
-      if (heroImageUrl) {
-        logger.log('[generateCard] Hero image generated')
-      } else {
-        logger.warn('[generateCard] Hero image generation failed, continuing without it')
-      }
-
-      logger.log('[generateCard] All sections processed sequentially')
+      logger.log('[generateCard] All images generated in batches')
       logger.log('[generateCard] Total paragraphs count:', paragraphs.length)
       paragraphs.forEach((para, index) => {
         logger.log(`[generateCard] Final paragraph ${index + 1} subParagraphs count:`, para.subParagraphs?.length || 0)
