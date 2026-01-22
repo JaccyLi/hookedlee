@@ -13,6 +13,7 @@ const { globalDebouncer, globalRateLimiter } = require('../../utils/rate-limiter
 
 const generateArticleOutline = bigModelModule.generateArticleOutline
 const expandSection = bigModelModule.expandSection
+const expandSentence = bigModelModule.expandSentence
 const generateImagesForParagraphs = bigModelModule.generateImagesForParagraphs
 const generateHeroImage = bigModelModule.generateHeroImage
 const generateImage = bigModelModule.generateImage
@@ -751,55 +752,49 @@ Page({
       })
 
       // Assign models and create expansion promises (all parallel)
-      const expansionPromises = outline.sections.map((section, index) => {
-        return new Promise(async (resolve) => {
-          // All sections: DeepSeek-Chat (no rate limit, parallel processing)
-          const sectionModel = 'deepseek-chat'
+      // Each section has 5 sentences, expand each sentence individually (15 parallel calls total)
+      const expansionPromises = outline.sections.map((section, sectionIndex) => {
+        // Expand each sentence in the section as a separate parallel call
+        const sentencePromises = section.sentences.map((sentence, sentenceIndex) => {
+          return new Promise(async (resolve) => {
+            const sectionModel = 'deepseek-chat'
 
-          logger.log(`[generateCard] Section ${index + 1} using: ${sectionModel} (parallel)`)
+            logger.log(`[generateCard] Section ${sectionIndex + 1}, Sentence ${sentenceIndex + 1} using: ${sectionModel} (parallel)`)
 
-          // Update progress UI
-          const updateProgress = (detail, completed = false) => {
-            const currentStreaming = self.data.streamingSections
-            if (currentStreaming && currentStreaming[index]) {
-              currentStreaming[index].model = sectionModel
-              currentStreaming[index].completed = completed
-              self.setData({
-                loadingDetail: detail,
-                streamingSections: currentStreaming
+            try {
+              // Expand single sentence into paragraph
+              const paragraph = await expandSentence(section, sentence, sentenceIndex, apiKey, self.data.language, sectionModel, apiKeys)
+              logger.log(`[generateCard] Section ${sectionIndex + 1}, Sentence ${sentenceIndex + 1} expanded successfully`)
+
+              resolve({ sentenceIndex, paragraph })
+            } catch (error) {
+              logger.error(`[generateCard] Section ${sectionIndex + 1}, Sentence ${sentenceIndex + 1} expansion failed:`, error)
+              // Return fallback paragraph
+              resolve({
+                sentenceIndex,
+                paragraph: `${sentenceIndex + 1}. ${sentence}`
               })
             }
-          }
+          })
+        })
 
-          updateProgress(isEn ? `Searching section ${index + 1}...` : `正在查找第 ${index + 1} 章节...`)
+        // Wait for all 5 sentences in this section to complete
+        return Promise.all(sentencePromises).then(paragraphs => {
+          // Sort paragraphs by sentenceIndex and combine into section
+          const sortedParagraphs = paragraphs.sort((a, b) => a.sentenceIndex - b.sentenceIndex).map(p => p.paragraph)
 
-          try {
-            logger.log(`[generateCard] Calling expandSection for section ${index + 1}, model: ${sectionModel}`)
+          // Create intro from first paragraph (or use section title)
+          const intro = sortedParagraphs.length > 0
+            ? `Explore ${section.title} through these key insights:`
+            : section.title
 
-            // Use regular HTTP expansion (reliable)
-            const expandedSection = await expandSection(section, apiKey, self.data.language, sectionModel, apiKeys)
-            logger.log(`[generateCard] Section ${index + 1} expanded successfully`)
-
-            updateProgress(isEn ? `Completed section ${index + 1}` : `完成第 ${index + 1} 章节`, true)
-            resolve({ index, expandedSection })
-          } catch (error) {
-            logger.error(`[generateCard] Section ${index + 1} expansion failed:`, error)
-            logger.error(`[generateCard] Error details:`, {
-              message: error.message,
-              stack: error.stack,
-              section: section.title,
-              model: sectionModel
-            })
-            // Return fallback section
-            updateProgress(isEn ? `Section ${index + 1} failed` : `第 ${index + 1} 章节失败`, true)
-            resolve({
-              index,
-              expandedSection: {
-                intro: section.summary || section.title,
-                subParagraphs: [],
-                imageUrl: ''
-              }
-            })
+          return {
+            index: sectionIndex,
+            expandedSection: {
+              intro: intro,
+              subParagraphs: sortedParagraphs,
+              imageUrl: ''
+            }
           }
         })
       })

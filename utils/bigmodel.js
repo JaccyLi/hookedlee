@@ -675,6 +675,140 @@ ${sentencesText}
 }
 
 /**
+ * Expand a single sentence into a detailed numbered paragraph
+ * @param {Object} section - Section object with title
+ * @param {string} sentence - The sentence to expand
+ * @param {number} sentenceIndex - Index of the sentence (1-5)
+ * @param {string} apiKey - API key (deprecated, backend used when available)
+ * @param {string} language - Language
+ * @param {string} model - Model to use
+ * @param {Object} apiKeys - Object containing { glmApiKey, deepseekApiKey }
+ * @returns {Promise<string>} Expanded numbered paragraph
+ */
+async function expandSentence(section, sentence, sentenceIndex, apiKey, language = 'en', model = 'deepseek-chat', apiKeys = null) {
+  logger.log('[expandSentence] START - Section:', section.title, 'Sentence:', sentenceIndex + 1)
+  logger.log('[expandSentence] Language:', language)
+  logger.log('[expandSentence] Model:', model)
+
+  const systemPrompt = language === 'en'
+    ? `You are an expert fly fishing writer. Expand the following sentence into a detailed paragraph.
+
+Section Title: ${section.title}
+
+Sentence to Expand (number ${sentenceIndex + 1} of 5):
+${sentence}
+
+Requirements:
+- Expand this single sentence into a detailed, informative paragraph
+- The paragraph should be 4-8 sentences long
+- Content must be practical, actionable, and highly informative
+- Include specific techniques, tips, or examples related to fly fishing
+- Use clear, professional language
+- CRITICAL: The paragraph MUST start with the number prefix "${sentenceIndex + 1}."
+
+Output ONLY the expanded paragraph text starting with the number.`
+    : `你是一位资深的飞钓专家。将以下句子扩展为详细段落。
+
+章节标题：${section.title}
+
+要扩展的句子（第${sentenceIndex + 1}个，共5个）：
+${sentence}
+
+要求：
+- 将这个单个句子扩展为详细、信息丰富的段落
+- 段落应为4-8句话长
+- 内容必须实用、可操作且信息丰富
+- 包含与飞钓相关的具体技巧、提示或示例
+- 使用清晰、专业的语言
+- 关键：段落必须以数字前缀"${sentenceIndex + 1}."开头
+
+只输出以数字开头的扩展段落文本。`
+
+  try {
+    // Check if backend proxy is enabled
+    const useBackend = backendClient.isBackendEnabled()
+    logger.log('[expandSentence] Using backend:', useBackend)
+
+    let content = ''
+
+    if (useBackend) {
+      // Try backend proxy first
+      try {
+        logger.log('[expandSentence] Calling backend with model:', model)
+        const response = await backendClient.makeRequest('/api/proxy/chat', {
+          model: model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: language === 'en' ? 'Expand this sentence.' : '扩展此句子。' }
+          ],
+          temperature: 0.8,
+          top_p: 0.95,
+          max_tokens: 2048
+        })
+        content = response
+      } catch (backendError) {
+        logger.warn('[expandSentence] Backend failed, falling back to direct API:', backendError.message)
+      }
+    }
+
+    // Fallback to direct API call if backend failed or was not enabled
+    if (!content) {
+      logger.log('[expandSentence] Using direct API call')
+
+      const apiConfig = getApiConfig(model, apiKey, apiKeys)
+      if (!apiConfig) {
+        throw new Error(`Unsupported model: ${model}`)
+      }
+
+      const response = await new Promise((resolve, reject) => {
+        wx.request({
+          url: apiConfig.url,
+          method: 'POST',
+          header: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiConfig.key}`
+          },
+          data: {
+            model: apiConfig.model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: language === 'en' ? 'Expand this sentence.' : '扩展此句子。' }
+            ],
+            temperature: 0.8,
+            top_p: 0.95,
+            max_tokens: 2048
+          },
+          timeout: 60000,
+          success: resolve,
+          fail: reject
+        })
+      })
+
+      if (response.statusCode === 200 && response.data.choices && response.data.choices.length > 0) {
+        content = response.data.choices[0].message.content.trim()
+      } else {
+        throw new Error('Invalid API response')
+      }
+    }
+
+    // Clean up the response
+    content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim()
+
+    // Ensure it starts with the correct number
+    if (!content.startsWith(`${sentenceIndex + 1}.`)) {
+      content = `${sentenceIndex + 1}. ${content}`
+    }
+
+    logger.log('[expandSentence] Completed, paragraph length:', content.length)
+    return content
+  } catch (error) {
+    logger.error('[expandSentence] Error:', error)
+    // Fallback to original sentence with numbering
+    return `${sentenceIndex + 1}. ${sentence}`
+  }
+}
+
+/**
  * Generate an image using BigModel's CogView API
  * @param {string} prompt - Image generation prompt
  * @param {string} apiKey - BigModel API key (deprecated, backend used when available)
@@ -965,6 +1099,7 @@ module.exports = {
   generateArticle,
   generateArticleOutline,
   expandSection,
+  expandSentence,
   generateImage,
   generateImagesForParagraphs,
   generateHeroImage,
