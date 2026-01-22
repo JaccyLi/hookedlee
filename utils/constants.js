@@ -9,7 +9,7 @@ module.exports = {
   AI: {
     // Maximum tokens for different request types
     MAX_TOKENS_OUTLINE: 4096,
-    MAX_TOKENS_EXPANSION: 16384,  // Increased for 3 detailed paragraphs
+    MAX_TOKENS_EXPANSION: 8192,  // DeepSeek max output limit
     MAX_TOKENS_FULL_ARTICLE: 8192,
 
     // Request timeouts in milliseconds
