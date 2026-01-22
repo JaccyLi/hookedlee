@@ -666,21 +666,22 @@ Output ONLY valid JSON in this format:
  * @param {string} prompt - Image generation prompt
  * @param {string} apiKey - BigModel API key (deprecated, backend used when available)
  * @param {boolean} isHero - Whether this is a hero image (uses GLM-Image model)
+ * @param {string} imageModel - Image model to use (e.g., 'cogview-3-flash', 'qwen-image-max')
  * @returns {Promise<string>} Image URL
  */
-function generateImage(prompt, apiKey, isHero = false) {
+function generateImage(prompt, apiKey, isHero = false, imageModel = null) {
   return new Promise(async (resolve, reject) => {
     try {
       let imageUrl = ''
 
       // Check if backend proxy is enabled
       const useBackend = backendClient.isBackendEnabled()
-      logger.log('[generateImage] Using backend:', useBackend, 'isHero:', isHero)
+      logger.log('[generateImage] Using backend:', useBackend, 'isHero:', isHero, 'imageModel:', imageModel)
 
       if (useBackend) {
         // Try backend proxy first
         try {
-          imageUrl = await backendClient.generateImage(prompt, AI.IMAGE_SIZE, isHero)
+          imageUrl = await backendClient.generateImage(prompt, AI.IMAGE_SIZE, isHero, imageModel)
           logger.log('[generateImage] Backend success')
           resolve(imageUrl)
           return
@@ -815,7 +816,7 @@ async function generateImagesForParagraphs(paragraphs, apiKey, onProgress = null
  * @param {Function} onProgress - Callback for progress updates {stage, message}
  * @returns {Promise<string>} Image URL
  */
-async function generateHeroImage(title, category, apiKey, onProgress = null) {
+async function generateHeroImage(title, category, apiKey, onProgress = null, imageModel = null) {
   const categoryPrompts = {
     'fly tying': 'fly fishing flies, fly tying tools, colorful artificial flies, detailed fly patterns',
     'fly casting': 'fly casting technique, angler casting fly rod, fly fishing action shot',
@@ -838,8 +839,8 @@ async function generateHeroImage(title, category, apiKey, onProgress = null) {
       })
     }
 
-    // Pass isHero=true to use GLM-Image model
-    const imageUrl = await generateImage(prompt, apiKey, true)
+    // Pass isHero=true and imageModel to generateImage
+    const imageUrl = await generateImage(prompt, apiKey, true, imageModel)
 
     // Report completion
     if (onProgress) {

@@ -835,24 +835,33 @@ Page({
         loadingDetail: isEn ? 'Searching images (4 parallel)...' : '正在查找图片（4个并行）...'
       })
 
+      // Determine hero image model based on quality mode
+      // High quality mode: use qwen-image-max for hero image
+      // Default mode: use cogview-3-flash for hero image
+      const heroImageModel = selectedModel === 'high-quality' ? 'qwen-image-max' : null
+      // Section images always use cogview-3-flash (default)
+      const sectionImageModel = null // Will use cogview-3-flash
+
+      logger.log('[Image Models] Hero:', heroImageModel || 'cogview-3-flash', 'Sections: cogview-3-flash')
+
       let heroImageUrl = null
       const allImagePromises = [
-        // Hero image
-        generateHeroImage(outline.title, outline.originalCategory, apiKey).then(url => {
+        // Hero image - use qwen-image-max if in high-quality mode
+        generateHeroImage(outline.title, outline.originalCategory, apiKey, null, heroImageModel).then(url => {
           heroImageUrl = url
           if (url) {
-            logger.log('[Hero] Image generated (parallel)')
+            logger.log('[Hero] Image generated (parallel, model:', heroImageModel || 'cogview-3-flash', ')')
           }
         }).catch(err => {
           logger.error('[Hero] Image generation failed:', err)
           heroImageUrl = null
         }),
-        // All section images (parallel)
+        // All section images - always use cogview-3-flash
         ...expandedSections.map((section, i) =>
-          generateImage(outline.sections[i].imagePrompt, apiKey).then(url => {
+          generateImage(outline.sections[i].imagePrompt, apiKey, false, sectionImageModel).then(url => {
             if (url) {
               paragraphs[i].imageUrl = url
-              logger.log(`[Section ${i + 1}] Image generated (parallel)`)
+              logger.log(`[Section ${i + 1}] Image generated (parallel, model: cogview-3-flash)`)
             }
           }).catch(err => logger.error(`[Section ${i + 1}] Image generation failed:`, err))
         )

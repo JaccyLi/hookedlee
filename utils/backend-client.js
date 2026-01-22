@@ -325,13 +325,15 @@ async function expandSection(params) {
  * @param {string} prompt - Image generation prompt
  * @param {string} size - Image size
  * @param {boolean} isHero - Whether this is a hero image (uses GLM-Image model)
+ * @param {string} imageModel - Image model to use (e.g., 'cogview-3-flash', 'qwen-image-max')
  * @returns {Promise<string>} Image URL
  */
-async function generateImage(prompt, size = '1024x1024', isHero = false) {
+async function generateImage(prompt, size = '1024x1024', isHero = false, imageModel = null) {
   const result = await makeBackendRequest('/api/proxy/image', {
     prompt: prompt,
     size: size,
-    isHero: isHero
+    isHero: isHero,
+    imageModel: imageModel || 'cogview-3-flash'
   })
 
   if (result.data && result.data.length > 0) {
