@@ -4,6 +4,9 @@
   <view class="swab-nav">
     <text class="swab-logo">{{uiText.title}}</text>
     <view class="swab-nav-actions">
+      <view class="swab-action-btn swab-chat-btn" bindtap="openChatModal">
+        💬
+      </view>
       <view class="swab-action-btn" bindtap="toggleLanguage">
         {{language === 'en' ? 'EN' : '中'}}
       </view>
@@ -448,6 +451,38 @@
     </view>
     <view class="floating-btn" bindtap="goToSettings">
       <text class="floating-btn-icon">⚙️</text>
+    </view>
+  </view>
+
+  <!-- Password Modal for Chat -->
+  <view class="password-modal-overlay" wx:if="{{showPasswordModal}}" bindtap="closePasswordModal">
+    <view class="password-modal" catchtap="stopPropagation">
+      <view class="password-modal-header">
+        <text class="password-modal-title">{{language === 'en' ? 'Enter Password' : '输入密码'}}</text>
+        <view class="password-modal-close" bindtap="closePasswordModal">✕</view>
+      </view>
+      <view class="password-modal-body">
+        <text class="password-modal-hint">{{language === 'en' ? 'Password required to access AI Chat' : '需要密码才能访问'}}</text>
+        <input
+          class="password-input"
+          type="password"
+          placeholder="{{language === 'en' ? 'Enter password...' : '输入密码...'}}"
+          value="{{chatPassword}}"
+          bindinput="onPasswordInput"
+          confirm-type="done"
+          bindconfirm="submitPassword"
+        />
+        <view class="password-error" wx:if="{{passwordError}}">{{passwordError}}</view>
+      </view>
+      <view class="password-modal-footer">
+        <view class="password-cancel-btn" bindtap="closePasswordModal">
+          <text>{{language === 'en' ? 'Cancel' : '取消'}}</text>
+        </view>
+        <view class="password-submit-btn {{passwordLoading ? 'loading' : ''}}" bindtap="submitPassword">
+          <text wx:if="{{!passwordLoading}}">{{language === 'en' ? 'Confirm' : '确认'}}</text>
+          <text wx:else>{{language === 'en' ? 'Verifying...' : '验证中...'}}</text>
+        </view>
+      </view>
     </view>
   </view>
 </view>

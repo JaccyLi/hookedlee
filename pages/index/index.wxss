@@ -1335,3 +1335,143 @@ page {
   font-weight: 600;
   color: #666666;
 }
+
+/* Chat Button */
+.swab-chat-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Password Modal */
+.password-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.3s ease;
+}
+
+.password-modal {
+  width: 85%;
+  max-width: 600rpx;
+  background: #ffffff;
+  border: 8rpx solid #000000;
+  border-radius: 32rpx;
+  box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.4s ease;
+  overflow: hidden;
+}
+
+.password-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx 40rpx;
+  background: #000000;
+  border-bottom: 4rpx solid #000000;
+}
+
+.password-modal-title {
+  font-size: 36rpx;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 1rpx;
+}
+
+.password-modal-close {
+  width: 64rpx;
+  height: 64rpx;
+  background: #ffffff;
+  color: #000000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  font-weight: 700;
+}
+
+.password-modal-body {
+  padding: 40rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.password-modal-hint {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #666666;
+  text-align: center;
+}
+
+.password-input {
+  width: 100%;
+  height: 100rpx;
+  background: #f8f8f8;
+  border: 4rpx solid #000000;
+  border-radius: 16rpx;
+  padding: 0 24rpx;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #000000;
+  box-sizing: border-box;
+}
+
+.password-error {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #ff3b30;
+  text-align: center;
+  padding: 12rpx;
+  background: #fff5f5;
+  border-radius: 12rpx;
+}
+
+.password-modal-footer {
+  display: flex;
+  gap: 20rpx;
+  padding: 24rpx 40rpx 40rpx;
+}
+
+.password-cancel-btn,
+.password-submit-btn {
+  flex: 1;
+  height: 100rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1rpx;
+}
+
+.password-cancel-btn {
+  background: #f0f0f0;
+  color: #000000;
+  border: 4rpx solid #000000;
+}
+
+.password-submit-btn {
+  background: #000000;
+  color: #ffffff;
+}
+
+.password-submit-btn.loading {
+  background: #666666;
+  opacity: 0.7;
+}
+
+.password-cancel-btn:active,
+.password-submit-btn:active,
+.password-modal-close:active {
+  transform: scale(0.95);
+  opacity: 0.8;
+}

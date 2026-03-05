@@ -68,6 +68,14 @@ const API_KEYS = {
   DASHSCOPE: process.env.DASHSCOPE_API_KEY // For Qwen image models
 }
 
+// Chat password for OpenClaw access (set in .env)
+const CHAT_PASSWORD = process.env.CHAT_PASSWORD || 'hookedlee2024'
+
+// OpenClaw Gateway configuration
+const OPENCLAW_GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'http://127.0.0.1:18789'
+const OPENCLAW_GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN || ''
+const OPENCLAW_AGENT_ID = process.env.OPENCLAW_AGENT_ID || 'main'
+
 // Key rotation counter for load balancing
 let bigmodelKeyIndex = 0
 
@@ -105,6 +113,8 @@ if (API_KEYS.DEEPSEEK) {
 if (API_KEYS.DASHSCOPE) {
   console.log('✓ Loaded DashScope API key (for Qwen image models)')
 }
+console.log(`✓ Chat password configured: ${CHAT_PASSWORD !== 'hookedlee2024' ? 'Yes (custom)' : 'Yes (default)'}`)
+console.log(`✓ OpenClaw Gateway: ${OPENCLAW_GATEWAY_URL}`)
 
 // ========== ROUTES ==========
 
@@ -194,6 +204,187 @@ app.get('/api/models', (req, res) => {
     dashscopeConfigured: !!API_KEYS.DASHSCOPE
   })
 })
+
+// ========== CHAT PASSWORD & OPENCLAW ENDPOINTS ==========
+
+/**
+ * Verify chat password
+ * POST /api/chat/verify-password
+ * Body: { password: string }
+ * Response: { valid: boolean }
+ */
+app.post('/api/chat/verify-password', (req, res) => {
+  const { password } = req.body
+
+  if (!password) {
+    return res.status(400).json({
+      valid: false,
+      error: 'Password is required'
+    })
+  }
+
+  // Simple password comparison (use bcrypt in production for better security)
+  const isValid = password === CHAT_PASSWORD
+
+  if (isValid) {
+    console.log('[Chat Auth] Password verified successfully')
+    res.json({ valid: true })
+  } else {
+    console.log('[Chat Auth] Invalid password attempt')
+    res.json({ valid: false })
+  }
+})
+
+/**
+ * OpenClaw Chat Endpoint
+ * POST /api/chat/openclaw
+ * Body: { message: string, history: Array }
+ * Response: { content: string }
+ *
+ * Forwards to OpenClaw gateway at http://127.0.0.1:18789/v1/chat/completions
+ */
+app.post('/api/chat/openclaw', async (req, res) => {
+  try {
+    const { message, history = [] } = req.body
+
+    if (!message) {
+      return res.status(400).json({
+        error: 'Message is required'
+      })
+    }
+
+    console.log('[OpenClaw Chat] New message, history length:', history.length)
+
+    // Build messages array from history + new message
+    const messages = [
+      ...history,
+      { role: 'user', content: message }
+    ]
+
+    // Forward to OpenClaw gateway
+    const response = await axios.post(
+      `${OPENCLAW_GATEWAY_URL}/v1/chat/completions`,
+      {
+        model: 'openclaw',
+        messages: messages,
+        stream: false
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENCLAW_GATEWAY_TOKEN}`,
+          'x-openclaw-agent-id': OPENCLAW_AGENT_ID
+        },
+        timeout: 60000 // 1 minute timeout
+      }
+    )
+
+    // Extract content from OpenAI-compatible response
+    const content = response.data?.choices?.[0]?.message?.content || ''
+
+    console.log('[OpenClaw Chat] Response received, length:', content.length)
+
+    res.json({
+      content: content,
+      id: response.data?.id,
+      model: response.data?.model
+    })
+  } catch (error) {
+    console.error('[OpenClaw Chat Error]:', error.message)
+
+    // Handle specific error cases
+    if (error.code === 'ECONNREFUSED') {
+      return res.status(503).json({
+        error: 'OpenClaw gateway not available',
+        message: 'Please ensure OpenClaw is running on ' + OPENCLAW_GATEWAY_URL
+      })
+    }
+
+    if (error.response?.status === 401) {
+      return res.status(503).json({
+        error: 'OpenClaw authentication failed',
+        message: 'Check OPENCLAW_GATEWAY_TOKEN configuration'
+      })
+    }
+
+    res.status(500).json({
+      error: 'Failed to communicate with OpenClaw',
+      details: error.response?.data || error.message
+    })
+  }
+})
+
+/**
+ * OpenClaw Streaming Chat Endpoint (WebSocket-ready)
+ * POST /api/chat/openclaw/stream
+ * Returns SSE stream
+ */
+app.post('/api/chat/openclaw/stream', async (req, res) => {
+  try {
+    const { message, history = [] } = req.body
+
+    if (!message) {
+      return res.status(400).json({
+        error: 'Message is required'
+      })
+    }
+
+    console.log('[OpenClaw Stream] New streaming request')
+
+    // Build messages array
+    const messages = [
+      ...history,
+      { role: 'user', content: message }
+    ]
+
+    // Set headers for SSE
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Connection', 'keep-alive')
+
+    // Make streaming request to OpenClaw
+    const response = await axios({
+      method: 'post',
+      url: `${OPENCLAW_GATEWAY_URL}/v1/chat/completions`,
+      data: {
+        model: 'openclaw',
+        messages: messages,
+        stream: true
+      },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENCLAW_GATEWAY_TOKEN}`,
+        'x-openclaw-agent-id': OPENCLAW_AGENT_ID
+      },
+      responseType: 'stream',
+      timeout: 120000 // 2 minutes
+    })
+
+    // Pipe the stream to response
+    response.data.on('data', (chunk) => {
+      res.write(chunk)
+    })
+
+    response.data.on('end', () => {
+      console.log('[OpenClaw Stream] Stream ended')
+      res.end()
+    })
+
+    response.data.on('error', (error) => {
+      console.error('[OpenClaw Stream Error]:', error)
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`)
+      res.end()
+    })
+  } catch (error) {
+    console.error('[OpenClaw Stream Setup Error]:', error.message)
+    res.status(500).json({
+      error: 'Failed to setup streaming',
+      details: error.message
+    })
+  }
+})
+
+// ========== AUTH ENDPOINTS ==========
 
 // WeChat Mini Program login endpoint
 app.post('/api/auth/login', async (req, res) => {

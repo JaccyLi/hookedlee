@@ -348,6 +348,30 @@ async function generateImage(prompt, size = '1024x1024', isHero = false, imageMo
   throw new Error('Failed to generate image')
 }
 
+/**
+ * Verify chat password via backend
+ * @param {string} password - Password to verify
+ * @returns {Promise<Object>} { valid: boolean }
+ */
+async function verifyChatPassword(password) {
+  return makeBackendRequest('/api/chat/verify-password', {
+    password: password
+  }, 'POST', false)
+}
+
+/**
+ * Send message to OpenClaw via backend
+ * @param {string} message - User message
+ * @param {Array} history - Conversation history
+ * @returns {Promise<Object>} { content: string }
+ */
+async function sendOpenClawMessage(message, history = []) {
+  return makeBackendRequest('/api/chat/openclaw', {
+    message: message,
+    history: history
+  }, 'POST', false)
+}
+
 module.exports = {
   getBackendUrl,
   isBackendEnabled,
@@ -364,5 +388,8 @@ module.exports = {
   getToken,
   saveToken,
   clearToken,
-  ensureLoggedIn
+  ensureLoggedIn,
+  // Chat functions
+  verifyChatPassword,
+  sendOpenClawMessage
 }

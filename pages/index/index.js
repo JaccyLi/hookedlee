@@ -116,7 +116,12 @@ Page({
     currentFlashcard: null,
     nextFlashcard: null,
     showNextFlashcard: false,
-    loadingFlashcardTimer: null
+    loadingFlashcardTimer: null,
+    // Password modal state
+    showPasswordModal: false,
+    chatPassword: '',
+    passwordError: '',
+    passwordLoading: false
   },
 
   onLoad() {
@@ -252,6 +257,67 @@ Page({
     wx.navigateTo({
       url: '/pages/articles/articles'
     })
+  },
+
+  // Password Modal Functions
+  openChatModal() {
+    this.setData({
+      showPasswordModal: true,
+      chatPassword: '',
+      passwordError: ''
+    })
+  },
+
+  closePasswordModal() {
+    this.setData({
+      showPasswordModal: false,
+      chatPassword: '',
+      passwordError: '',
+      passwordLoading: false
+    })
+  },
+
+  onPasswordInput(e) {
+    this.setData({
+      chatPassword: e.detail.value,
+      passwordError: ''
+    })
+  },
+
+  async submitPassword() {
+    if (!this.data.chatPassword) {
+      this.setData({
+        passwordError: this.data.language === 'en' ? 'Please enter password' : '请输入密码'
+      })
+      return
+    }
+
+    this.setData({ passwordLoading: true, passwordError: '' })
+
+    try {
+      const result = await backendClient.makeBackendRequest('/api/chat/verify-password', {
+        password: this.data.chatPassword
+      }, 'POST', false)
+
+      if (result.valid) {
+        // Password is correct, navigate to chat page
+        this.closePasswordModal()
+        wx.navigateTo({
+          url: '/pages/chat/chat'
+        })
+      } else {
+        this.setData({
+          passwordError: this.data.language === 'en' ? 'Incorrect password' : '密码错误',
+          passwordLoading: false
+        })
+      }
+    } catch (error) {
+      logger.error('[submitPassword] Error:', error)
+      this.setData({
+        passwordError: this.data.language === 'en' ? 'Verification failed' : '验证失败',
+        passwordLoading: false
+      })
+    }
   },
 
   scrollToCategories() {
@@ -519,7 +585,7 @@ Page({
     if (!validation.valid) {
       logger.warn('[onCategoryInput] Invalid input:', validation.error)
 
-      // Show warning but don't block typing (just sanitize)
+      // Show warning but don't block typing
       if (value.length > 100) {
         wx.showToast({
           title: this.data.language === 'en'
@@ -530,13 +596,18 @@ Page({
         })
         return
       }
+
+      // For other validation errors, don't update state to avoid cursor issues
+      return
     }
 
-    // Use sanitized input
-    const sanitizedValue = validation.valid ? validation.sanitized : value
-    this.setData({
-      customCategory: sanitizedValue
-    })
+    // Only update state if value actually changed to avoid cursor jumping
+    const sanitizedValue = validation.sanitized
+    if (sanitizedValue !== this.data.customCategory) {
+      this.setData({
+        customCategory: sanitizedValue
+      })
+    }
   },
 
   clearCustomCategory() {

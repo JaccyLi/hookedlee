@@ -1,0 +1,53 @@
+<!-- pages/chat/chat.wxml -->
+<view class="chat-container">
+  <!-- Chat Messages -->
+  <scroll-view class="chat-messages" scroll-y scroll-into-view="{{scrollToView}}">
+    <view class="message-list">
+      <!-- Welcome Message -->
+      <view class="message assistant" wx:if="{{messages.length === 0}}">
+        <view class="message-avatar">🤖</view>
+        <view class="message-content">
+          <text class="message-text">{{language === 'en' ? 'Hello! I\'m your AI assistant. How can I help you today?' : '你好！我是你的AI助手。今天有什么可以帮助你的吗？'}}</text>
+        </view>
+      </view>
+
+      <!-- Conversation Messages -->
+      <view class="message {{item.role}}" wx:for="{{messages}}" wx:key="id" id="msg-{{index}}">
+        <view class="message-avatar">{{item.role === 'user' ? '👤' : '🤖'}}</view>
+        <view class="message-content">
+          <text class="message-text">{{item.content}}</text>
+        </view>
+      </view>
+
+      <!-- Loading Indicator -->
+      <view class="message assistant" wx:if="{{isLoading}}">
+        <view class="message-avatar">🤖</view>
+        <view class="message-content">
+          <view class="typing-indicator">
+            <view class="typing-dot"></view>
+            <view class="typing-dot"></view>
+            <view class="typing-dot"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- Input Area -->
+  <view class="chat-input-area">
+    <view class="chat-input-wrapper">
+      <input
+        class="chat-input"
+        placeholder="{{language === 'en' ? 'Type a message...' : '输入消息...'}}"
+        value="{{inputMessage}}"
+        bindinput="onInputChange"
+        confirm-type="send"
+        bindconfirm="sendMessage"
+        disabled="{{isLoading}}"
+      />
+      <view class="send-btn {{inputMessage && !isLoading ? 'active' : ''}}" bindtap="sendMessage">
+        <text>➤</text>
+      </view>
+    </view>
+  </view>
+</view>

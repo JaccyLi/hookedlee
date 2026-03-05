@@ -3,6 +3,7 @@
     "pages/index/index",
     "pages/articles/articles",
     "pages/settings/settings",
+    "pages/chat/chat",
     "pages/articles/md/inter-casting.md"
   ],
   "window": {

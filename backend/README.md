@@ -11,6 +11,7 @@ Secure backend server for the HookedLee WeChat Mini Program. Proxies AI API requ
 - ✅ **CORS Enabled** - Configured for WeChat Mini Program compatibility
 - ✅ **Health Monitoring** - Health check endpoint for status monitoring
 - ✅ **Image Generation** - Proxy for BigModel's CogView-3-Flash
+- ✅ **OpenClaw Chat** - Password-protected AI chat via OpenClaw gateway
 
 ## 📋 Prerequisites
 
@@ -183,6 +184,59 @@ Image generation via BigModel CogView-3-Flash.
 }
 ```
 
+### POST `/api/chat/verify-password`
+Verify chat password for OpenClaw access.
+
+**Request Body:**
+```json
+{
+  "password": "your_chat_password"
+}
+```
+
+**Response:**
+```json
+{
+  "valid": true
+}
+```
+
+### POST `/api/chat/openclaw`
+Send message to OpenClaw AI assistant.
+
+**Request Body:**
+```json
+{
+  "message": "Hello, how can you help me?",
+  "history": [
+    { "role": "user", "content": "Previous message" },
+    { "role": "assistant", "content": "Previous response" }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "content": "Hello! I'm here to help you with...",
+  "id": "chat-xxx",
+  "model": "openclaw"
+}
+```
+
+### POST `/api/chat/openclaw/stream`
+Streaming chat endpoint (Server-Sent Events).
+
+**Request Body:**
+```json
+{
+  "message": "Tell me a story",
+  "history": []
+}
+```
+
+**Response:** SSE stream with `data:` prefixed JSON chunks.
+
 ## 🔒 Security Features
 
 1. **API Key Protection** - Keys never leave the server
@@ -275,9 +329,15 @@ git push heroku main
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `BIGMODEL_API_KEY` | No* | BigModel API key for GLM-4.7 |
+| `BIGMODEL_API_KEY` | No* | BigModel API key for GLM-4.7 (comma-separated for multiple keys) |
 | `DEEPSEEK_API_KEY` | No* | DeepSeek API key |
-| `PORT` | No | Server port (default: 3000) |
+| `DASHSCOPE_API_KEY` | No | DashScope API key for Qwen image models |
+| `CHAT_PASSWORD` | No | Password for OpenClaw chat access (default: hookedlee2024) |
+| `OPENCLAW_GATEWAY_URL` | No | OpenClaw gateway URL (default: http://127.0.0.1:18789) |
+| `OPENCLAW_GATEWAY_TOKEN` | No | OpenClaw gateway authentication token |
+| `OPENCLAW_AGENT_ID` | No | OpenClaw agent ID (default: main) |
+| `HTTP_PORT` | No | HTTP server port (default: 3000) |
+| `HTTPS_PORT` | No | HTTPS server port (default: 3443) |
 | `NODE_ENV` | No | Environment (development/production) |
 
 *At least one API key is required.
@@ -312,6 +372,16 @@ curl -X POST http://localhost:3000/api/proxy/chat \
     "model": "glm-4.7",
     "messages": [{"role": "user", "content": "Hello!"}]
   }'
+
+# Test chat password verification
+curl -X POST http://localhost:3000/api/chat/verify-password \
+  -H "Content-Type: application/json" \
+  -d '{"password": "hookedlee2024"}'
+
+# Test OpenClaw chat (requires OpenClaw running)
+curl -X POST http://localhost:3000/api/chat/openclaw \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello, OpenClaw!"}'
 ```
 
 ## 📊 Monitoring

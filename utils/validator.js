@@ -19,8 +19,8 @@ function validateCategoryInput(input) {
 
   const trimmed = input.trim()
 
-  // Length validation
-  if (trimmed.length === 0) {
+  // Length validation - check if there's any content (not just whitespace)
+  if (trimmed.length === 0 && input.length === 0) {
     return {
       valid: false,
       sanitized: '',
@@ -28,7 +28,11 @@ function validateCategoryInput(input) {
     }
   }
 
-  if (trimmed.length > 100) {
+  // If input has only spaces (no content), still allow it - sanitization will handle
+  if (trimmed.length === 0 && input.length > 0) {
+    // Input contains only whitespace (spaces, tabs, etc.) - this is valid
+    // It will be sanitized to a single space or empty based on content
+  } else if (trimmed.length > 100) {
     return {
       valid: false,
       sanitized: '',
@@ -64,10 +68,15 @@ function validateCategoryInput(input) {
 
   // Sanitize: Remove special characters that could manipulate prompts
   // Keep only safe characters: letters, numbers, spaces, hyphens, and common punctuation
-  const sanitized = trimmed
+  let sanitized = trimmed
     .replace(/[<>{}$`]/g, '') // Remove dangerous characters
     .replace(/\s+/g, ' ') // Normalize whitespace
-    .trim()
+
+  // Only trim if there's actual content (not just whitespace)
+  // This allows users to intentionally enter spaces
+  if (sanitized.match(/[a-zA-Z0-9\u4e00-\u9fa5]/)) {
+    sanitized = sanitized.trim()
+  }
 
   return {
     valid: true,
