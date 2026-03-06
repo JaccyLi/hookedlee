@@ -241,7 +241,7 @@ app.post('/api/chat/verify-password', (req, res) => {
  * Body: { message: string, history: Array }
  * Response: { content: string }
  *
- * Forwards to OpenClaw gateway at http://127.0.0.1:18789/v1/chat/completions
+ * Forwards to OpenClaw gateway at http://127.0.0.1:18790/v1/chat/completions
  */
 app.post('/api/chat/openclaw', async (req, res) => {
   try {
@@ -253,13 +253,29 @@ app.post('/api/chat/openclaw', async (req, res) => {
       })
     }
 
-    console.log('[OpenClaw Chat] New message, history length:', history.length)
+    console.log('[OpenClaw Chat] New message:', message)
+    console.log('[OpenClaw Chat] History length:', history.length)
+    console.log('[OpenClaw Chat] Gateway URL:', OPENCLAW_GATEWAY_URL)
+    console.log('[OpenClaw Chat] Agent ID:', OPENCLAW_AGENT_ID)
 
     // Build messages array from history + new message
+    // Ensure history items have correct format
+    const formattedHistory = history.map(h => ({
+      role: h.role || 'user',
+      content: h.content || ''
+    }))
+
     const messages = [
-      ...history,
+      ...formattedHistory,
       { role: 'user', content: message }
     ]
+
+    console.log('[OpenClaw Chat] Total messages:', messages.length)
+    console.log('[OpenClaw Chat] Request body:', JSON.stringify({
+      model: 'openclaw',
+      messages: messages,
+      stream: false
+    }))
 
     // Forward to OpenClaw gateway
     const response = await axios.post(
@@ -291,6 +307,12 @@ app.post('/api/chat/openclaw', async (req, res) => {
     })
   } catch (error) {
     console.error('[OpenClaw Chat Error]:', error.message)
+
+    // Log the actual error response from OpenClaw
+    if (error.response) {
+      console.error('[OpenClaw Chat Error] Status:', error.response.status)
+      console.error('[OpenClaw Chat Error] Data:', JSON.stringify(error.response.data))
+    }
 
     // Handle specific error cases
     if (error.code === 'ECONNREFUSED') {
