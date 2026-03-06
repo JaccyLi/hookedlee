@@ -956,12 +956,13 @@ httpServer.on('error', (error) => {
 
 // Choose the appropriate server for WebSocket (HTTPS or HTTP)
 const wsServer = httpsServer || httpServer
-const wss = new WebSocket.Server({ server: wsServer, path: '/ws' })
+const wss = new WebSocket.Server({ server: wsServer, path: '/ws/chat' })
 
 console.log('=================================')
 console.log('🔌 WebSocket Server Started')
 console.log('=================================')
 console.log(`✓ WebSocket running on ${httpsServer ? 'HTTPS' : 'HTTP'} server`)
+console.log(`✓ WebSocket path: /ws/chat`)
 console.log('=================================\n')
 
 // Store active connections with their session info
@@ -1107,6 +1108,103 @@ wss.on('connection', (ws, req) => {
           ws.send(JSON.stringify({
             type: 'error',
             sectionIndex,
+            error: error.message
+          }))
+        }
+      }
+
+      // Handle chat messages (OpenClaw streaming)
+      if (data.type === 'chat') {
+        const { message, history = [] } = data
+
+        console.log(`[WebSocket] Chat request from ${clientId}:`, message?.substring(0, 50))
+
+        // Build messages array
+        const formattedHistory = history.map(h => ({
+          role: h.role || 'user',
+          content: h.content || ''
+        }))
+
+        // Check for duplicates
+        const lastMessage = formattedHistory[formattedHistory.length - 1]
+        const isDuplicate = lastMessage &&
+          lastMessage.role === 'user' &&
+          lastMessage.content === message
+
+        const messages = isDuplicate
+          ? formattedHistory
+          : [...formattedHistory, { role: 'user', content: message }]
+
+        console.log(`[WebSocket] Chat messages count: ${messages.length}`)
+
+        try {
+          // Make streaming request to OpenClaw
+          const response = await axios({
+            method: 'post',
+            url: `${OPENCLAW_GATEWAY_URL}/v1/chat/completions`,
+            data: {
+              model: 'openclaw',
+              messages: messages,
+              stream: true
+            },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${OPENCLAW_GATEWAY_TOKEN}`,
+              'x-openclaw-agent-id': OPENCLAW_AGENT_ID
+            },
+            responseType: 'stream',
+            timeout: 120000
+          })
+
+          console.log(`[WebSocket] Chat stream started for ${clientId}`)
+
+          // Stream chunks back to client
+          response.data.on('data', (chunk) => {
+            const lines = chunk.toString().split('\n').filter(line => line.trim() !== '')
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6)
+                if (data === '[DONE]') {
+                  ws.send(JSON.stringify({
+                    type: 'done'
+                  }))
+                  console.log(`[WebSocket] Chat stream done for ${clientId}`)
+                  return
+                }
+
+                try {
+                  const parsed = JSON.parse(data)
+                  const content = parsed.choices?.[0]?.delta?.content || ''
+
+                  if (content) {
+                    ws.send(JSON.stringify({
+                      type: 'chunk',
+                      content
+                    }))
+                  }
+                } catch (e) {
+                  // Skip invalid JSON
+                }
+              }
+            }
+          })
+
+          response.data.on('end', () => {
+            console.log(`[WebSocket] Chat stream ended for ${clientId}`)
+          })
+
+          response.data.on('error', (error) => {
+            console.error(`[WebSocket] Chat stream error for ${clientId}:`, error)
+            ws.send(JSON.stringify({
+              type: 'error',
+              error: error.message
+            }))
+          })
+        } catch (error) {
+          console.error(`[WebSocket] Chat setup error for ${clientId}:`, error.message)
+          ws.send(JSON.stringify({
+            type: 'error',
             error: error.message
           }))
         }

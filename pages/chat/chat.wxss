@@ -5,13 +5,17 @@
   flex-direction: column;
   height: 100vh;
   background: #f5f5f5;
+  box-sizing: border-box;
 }
 
 /* Messages Area */
 .chat-messages {
   flex: 1;
   padding: 24rpx;
-  padding-bottom: 180rpx;
+  /* Extra padding at bottom to account for fixed input area */
+  /* Input area: ~140rpx + safe-area-inset-bottom */
+  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 
 .message-list {
