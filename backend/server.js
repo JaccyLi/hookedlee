@@ -328,8 +328,6 @@ app.post('/api/chat/openclaw', async (req, res) => {
 
     console.log('[OpenClaw Chat] New message:', message)
     console.log('[OpenClaw Chat] History length:', history.length)
-    console.log('[OpenClaw Chat] Gateway URL:', OPENCLAW_GATEWAY_URL)
-    console.log('[OpenClaw Chat] Agent ID:', OPENCLAW_AGENT_ID)
 
     // Build messages array from history + new message
     // Ensure history items have correct format
@@ -338,17 +336,18 @@ app.post('/api/chat/openclaw', async (req, res) => {
       content: h.content || ''
     }))
 
-    const messages = [
-      ...formattedHistory,
-      { role: 'user', content: message }
-    ]
+    // Check if last message in history is the same as new message (avoid duplicate)
+    const lastMessage = formattedHistory[formattedHistory.length - 1]
+    const isDuplicate = lastMessage &&
+      lastMessage.role === 'user' &&
+      lastMessage.content === message
+
+    const messages = isDuplicate
+      ? formattedHistory
+      : [...formattedHistory, { role: 'user', content: message }]
 
     console.log('[OpenClaw Chat] Total messages:', messages.length)
-    console.log('[OpenClaw Chat] Request body:', JSON.stringify({
-      model: 'openclaw',
-      messages: messages,
-      stream: false
-    }))
+    console.log('[OpenClaw Chat] Gateway:', OPENCLAW_GATEWAY_URL, 'Agent:', OPENCLAW_AGENT_ID)
 
     // Forward to OpenClaw gateway
     const response = await axios.post(
@@ -424,18 +423,34 @@ app.post('/api/chat/openclaw/stream', async (req, res) => {
       })
     }
 
-    console.log('[OpenClaw Stream] New streaming request')
+    console.log('[OpenClaw Stream] New streaming request, message:', message)
+    console.log('[OpenClaw Stream] History length:', history.length)
 
-    // Build messages array
-    const messages = [
-      ...history,
-      { role: 'user', content: message }
-    ]
+    // Build messages array - check for duplicates
+    const formattedHistory = history.map(h => ({
+      role: h.role || 'user',
+      content: h.content || ''
+    }))
+
+    // Check if last message in history is the same as new message (avoid duplicate)
+    const lastMessage = formattedHistory[formattedHistory.length - 1]
+    const isDuplicate = lastMessage &&
+      lastMessage.role === 'user' &&
+      lastMessage.content === message
+
+    const messages = isDuplicate
+      ? formattedHistory
+      : [...formattedHistory, { role: 'user', content: message }]
+
+    console.log('[OpenClaw Stream] Total messages:', messages.length)
 
     // Set headers for SSE
     res.setHeader('Content-Type', 'text/event-stream')
     res.setHeader('Cache-Control', 'no-cache')
     res.setHeader('Connection', 'keep-alive')
+    res.setHeader('X-Accel-Buffering', 'no') // Disable nginx buffering
+
+    console.log('[OpenClaw Stream] Connecting to gateway...')
 
     // Make streaming request to OpenClaw
     const response = await axios({
@@ -455,8 +470,12 @@ app.post('/api/chat/openclaw/stream', async (req, res) => {
       timeout: 120000 // 2 minutes
     })
 
+    console.log('[OpenClaw Stream] Connected, streaming data...')
+
     // Pipe the stream to response
     response.data.on('data', (chunk) => {
+      const chunkStr = chunk.toString()
+      console.log('[OpenClaw Stream] Chunk:', chunkStr.substring(0, 100))
       res.write(chunk)
     })
 
@@ -472,10 +491,12 @@ app.post('/api/chat/openclaw/stream', async (req, res) => {
     })
   } catch (error) {
     console.error('[OpenClaw Stream Setup Error]:', error.message)
-    res.status(500).json({
-      error: 'Failed to setup streaming',
-      details: error.message
-    })
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: 'Failed to setup streaming',
+        details: error.message
+      })
+    }
   }
 })
 
