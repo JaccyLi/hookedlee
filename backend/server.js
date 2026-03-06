@@ -207,6 +207,60 @@ app.get('/api/models', (req, res) => {
 
 // ========== CHAT PASSWORD & OPENCLAW ENDPOINTS ==========
 
+// Rate limiter for password attempts (in-memory)
+const passwordAttempts = new Map() // IP -> { count, resetTime, blockedUntil }
+
+/**
+ * Check if IP is rate limited for password attempts
+ * @param {string} ip - Client IP address
+ * @returns {Object} { allowed: boolean, waitTime: number, blocked: boolean }
+ */
+function checkPasswordRateLimit(ip) {
+  const now = Date.now()
+  const windowMs = 1000 // 1 second window
+  const maxAttempts = 3 // Max 3 attempts per second
+  const blockDurationMs = 60000 // Block for 1 minute
+
+  const record = passwordAttempts.get(ip)
+
+  // Check if currently blocked
+  if (record?.blockedUntil && now < record.blockedUntil) {
+    const waitTime = Math.ceil((record.blockedUntil - now) / 1000)
+    return { allowed: false, waitTime, blocked: true }
+  }
+
+  if (!record || now > record.resetTime) {
+    // New window
+    passwordAttempts.set(ip, { count: 1, resetTime: now + windowMs, blockedUntil: null })
+    return { allowed: true, waitTime: 0, blocked: false }
+  }
+
+  if (record.count >= maxAttempts) {
+    // Rate limited - block for 1 minute
+    record.blockedUntil = now + blockDurationMs
+    const waitTime = Math.ceil(blockDurationMs / 1000)
+    console.log(`[Chat Auth] IP ${ip} blocked for 1 minute due to rate limiting`)
+    return { allowed: false, waitTime, blocked: true }
+  }
+
+  // Increment count
+  record.count++
+  return { allowed: true, waitTime: 0, blocked: false }
+}
+
+// Clean up old entries every minute
+setInterval(() => {
+  const now = Date.now()
+  for (const [ip, record] of passwordAttempts.entries()) {
+    // Remove entries that are no longer blocked and window has passed
+    if (record.blockedUntil && now > record.blockedUntil) {
+      passwordAttempts.delete(ip)
+    } else if (!record.blockedUntil && now > record.resetTime + 60000) {
+      passwordAttempts.delete(ip)
+    }
+  }
+}, 60000)
+
 /**
  * Verify chat password
  * POST /api/chat/verify-password
@@ -214,6 +268,23 @@ app.get('/api/models', (req, res) => {
  * Response: { valid: boolean }
  */
 app.post('/api/chat/verify-password', (req, res) => {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown'
+
+  // Check rate limit
+  const rateCheck = checkPasswordRateLimit(ip)
+  if (!rateCheck.allowed) {
+    console.log(`[Chat Auth] Rate limited for IP: ${ip}, blocked: ${rateCheck.blocked}`)
+    return res.status(429).json({
+      valid: false,
+      error: 'Too many attempts',
+      message: rateCheck.blocked
+        ? 'Too many failed attempts. Please wait 1 minute before trying again.'
+        : `Please wait ${rateCheck.waitTime} second(s) before trying again`,
+      retryAfter: rateCheck.waitTime,
+      blocked: rateCheck.blocked
+    })
+  }
+
   const { password } = req.body
 
   if (!password) {
@@ -227,10 +298,12 @@ app.post('/api/chat/verify-password', (req, res) => {
   const isValid = password === CHAT_PASSWORD
 
   if (isValid) {
-    console.log('[Chat Auth] Password verified successfully')
+    console.log(`[Chat Auth] Password verified successfully for IP: ${ip}`)
+    // Clear rate limit on successful auth
+    passwordAttempts.delete(ip)
     res.json({ valid: true })
   } else {
-    console.log('[Chat Auth] Invalid password attempt')
+    console.log(`[Chat Auth] Invalid password attempt from IP: ${ip}`)
     res.json({ valid: false })
   }
 })

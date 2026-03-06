@@ -1,7 +1,7 @@
 <!-- pages/chat/chat.wxml -->
 <view class="chat-container">
   <!-- Chat Messages -->
-  <scroll-view class="chat-messages" scroll-y scroll-into-view="{{scrollToView}}">
+  <scroll-view class="chat-messages" scroll-y scroll-into-view="{{scrollToView}}" scroll-with-animation>
     <view class="message-list">
       <!-- Welcome Message -->
       <view class="message assistant" wx:if="{{messages.length === 0}}">
@@ -16,11 +16,13 @@
         <view class="message-avatar">{{item.role === 'user' ? '👤' : '🤖'}}</view>
         <view class="message-content">
           <text class="message-text">{{item.content}}</text>
+          <!-- Streaming cursor -->
+          <text class="streaming-cursor" wx:if="{{item.streaming}}">▌</text>
         </view>
       </view>
 
-      <!-- Loading Indicator -->
-      <view class="message assistant" wx:if="{{isLoading}}">
+      <!-- Loading Indicator (for initial load) -->
+      <view class="message assistant" wx:if="{{isLoading && messages[messages.length-1].content === ''}}">
         <view class="message-avatar">🤖</view>
         <view class="message-content">
           <view class="typing-indicator">

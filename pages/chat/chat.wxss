@@ -159,3 +159,26 @@
   transform: scale(0.9);
   opacity: 0.8;
 }
+
+/* Streaming Cursor */
+.streaming-cursor {
+  display: inline-block;
+  font-size: 30rpx;
+  font-weight: 900;
+  color: #000000;
+  animation: blink 0.8s ease-in-out infinite;
+  margin-left: 4rpx;
+}
+
+.message.user .streaming-cursor {
+  color: #ffffff;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
